@@ -10,6 +10,7 @@ public class Flight {
 
     /**
      * Constructor
+     *
      * @param flightId
      * @param source
      * @param destination
@@ -17,7 +18,8 @@ public class Flight {
      * @param airfare
      * @param seatAvailability
      */
-    public Flight(int flightId, String source, String destination, DateTime departureTime, float airfare, int seatAvailability) {
+    public Flight(int flightId, String source, String destination, DateTime departureTime, float airfare,
+                  int seatAvailability) {
         this.flightId = flightId;
         this.source = source;
         this.destination = destination;
@@ -27,7 +29,6 @@ public class Flight {
     }
 
     /**
-     * 
      * @return flightId
      */
     public int getFlightId() {
@@ -111,4 +112,30 @@ public class Flight {
         this.seatAvailability = seatAvailability;
     }
 
+    /**
+     * displays flight details
+     */
+    public void print() {
+        String s =
+                "FlightId: " + this.flightId + "\n" + "Source: " + this.source + "\n" + "Destination: " + this.destination + "\n" + "Departure Time: " + this.departureTime + "\n" + "Airfare: " + this.airfare + "\n" + "Seat Availability: " + this.seatAvailability + "\n";
+        System.out.println(s);
+    }
+
+    public boolean reserveSeats(int seatsBooking, boolean isAdding) {
+        if (!isAdding) {
+            if (seatAvailability < seatsBooking) return false;
+            seatAvailability -= seatsBooking;
+        }
+        seatAvailability += seatsBooking;
+        return true;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof Flight) {
+            Flight s = (Flight) obj;
+            return flightId == s.flightId;
+        }
+        return false;
+    }
 }
