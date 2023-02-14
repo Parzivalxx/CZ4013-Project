@@ -125,6 +125,7 @@ public class Flight {
         if (!isAdding) {
             if (seatAvailability < seatsBooking) return false;
             seatAvailability -= seatsBooking;
+            return true;
         }
         seatAvailability += seatsBooking;
         return true;

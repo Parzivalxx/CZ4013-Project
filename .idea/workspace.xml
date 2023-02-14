@@ -2,13 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="ae22447e-6c8b-4450-8bd1-233287b99b42" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/codeStyles/codeStyleConfig.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/uiDesigner.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/controller/ClientManager.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/controller/FlightManager.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/entity/Client.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/client/Client.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/client/udpClient.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/entity/Flight.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/entity/Flight.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
