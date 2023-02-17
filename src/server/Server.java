@@ -5,6 +5,10 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.rmi.MarshalException;
+
+import entity.*;
+import utils.*;
 
 public class Server {
     
@@ -16,7 +20,7 @@ public class Server {
         this.socket = socket;
     }
 
-    public void receiveMessage() {
+    public void receiveMessage(Marshaller marshaller) {
         while(true) {
             try {
                 DatagramPacket packet = new DatagramPacket(this.buffer, this.buffer.length);
@@ -25,13 +29,13 @@ public class Server {
                 int clientPort = packet.getPort();
 
                 //unmarshalling here
-                String message = new String(packet.getData(), 0, packet.getLength());
-                System.out.println("Message from IP Address: " + clientAddress + " and port " + clientPort + " is: " + message);
+                Flight flight = marshaller.byteArrayToFlight(packet.getData());
+                System.out.println(flight.toString());
 
-                //marshalling here
-                System.out.println("Sending message back to IP Address: " + clientAddress + " and port " + clientPort + "...");
-                packet = new DatagramPacket(message.getBytes(), message.getBytes().length, clientAddress, clientPort);
-                socket.send(packet);
+                // //marshalling here
+                // System.out.println("Sending message back to IP Address: " + clientAddress + " and port " + clientPort + "...");
+                // packet = new DatagramPacket(message.getBytes(), message.getBytes().length, clientAddress, clientPort);
+                // socket.send(packet);
             } catch (IOException e) {
                 e.printStackTrace();
                 break;
@@ -41,11 +45,12 @@ public class Server {
 
     public static void main(String[] args) {
         Server server;
+        Marshaller marshaller = new Marshaller();
         try {
             //server listens to port 5000
             server = new Server(new DatagramSocket(PORT));
             System.out.println("Server is listening on port " + PORT + "...");
-            server.receiveMessage();
+            server.receiveMessage(marshaller);
         } catch (SocketException e) {
             e.printStackTrace();
         }
