@@ -56,47 +56,83 @@ public class Client {
         System.out.print("Choose your option : ");
     }
 
-    public void queryFlights() {
-        Scanner sc = new Scanner(System.in);
+    public void queryFlights(Scanner sc) {
         System.out.println(
                 "To query for flights based on flight routes, please enter the desired source and destination.");
         System.out.println("Please enter the desired source location.");
         try {
-            String src = sc.nextLine();
+            String src = sc.next();
             System.out.println("Please enter the desired destination location.");
-            String dst = sc.nextLine();
+            String dst = sc.next();
+
+            /**
+             * Client message:
+             * length of message (int: 4 bytes) +
+             * serviceType (int: 4 bytes) +
+             * length of source (int: 4 bytes) +
+             * source +
+             * length of destination (int: 4 bytes) +
+             * destination
+             */
+            int serviceType = 1;
+            this.buffer = this.marshaller.viewFlightsToByteArray(serviceType, src, dst);
+            sendMessage(buffer);
+//            byte[] response = this.receive();
             System.out.println(String.format("Here are the flights travelling from %s to %s", src, dst));
-            System.out.println("blahblah");
-        } catch (Exception ex) {
-            System.out.println("Error: Input is not an integer.");
+            System.out.println("insert server reply here");
+        } catch (Exception e) {
+            System.out.println("Error: Invalid Input.");
+            e.printStackTrace();
         }
     }
 
-    public void queryFlightByID() {
-        Scanner sc = new Scanner(System.in);
+    public void queryFlightByID(Scanner sc) {
         System.out.println("To query for flights based on flight ID, please enter the FlightID.");
         System.out.println("Please enter the FlightID.");
         try {
-            int flightID = sc.nextInt();
-            System.out.println(String.format("Here are the details about Flight ID: %d", flightID));
+            int flightId = sc.nextInt();
+
+            /**
+             * Client message:
+             * length of message (int: 4 bytes) +
+             * serviceType (int: 4 bytes) +
+             * flightID (int: 4 bytes)
+             */
+            int serviceType = 2;
+            this.buffer = this.marshaller.getFlightInfoToByteArray(serviceType, flightId);
+            sendMessage(buffer);
+//            byte[] response = this.receive();
+            System.out.println(String.format("Here are the details about Flight ID: %d", flightId));
             System.out.println("to be added");
-        } catch (Exception ex) {
+        } catch (Exception e) {
             System.out.println("Error: Input is not an integer.");
+            e.printStackTrace();
         }
     }
 
-    public void makeReservation() {
-        Scanner sc = new Scanner(System.in);
+    public void makeReservation(Scanner sc) {
         System.out
                 .println("To make reservation for flight, please enter the FlightID and the desired amount of seats.");
         System.out.println("Please enter the FlightID.");
         try {
-            int flightID = sc.nextInt();
+            int flightId = sc.nextInt();
             System.out.println("Please enter the number of seats you wish to book.");
-            int seatCount = sc.nextInt();
-            System.out.println(String.format("%d seats booked for Flight ID: %d", seatCount, flightID));
-        } catch (Exception ex) {
+            int numSeats = sc.nextInt();
+
+            /**
+             * Client message:
+             * length of message (int: 4 bytes) +
+             * serviceType (int: 4 bytes) +
+             * flightID (int: 4 bytes) +
+             * numSeats (int: 4 bytes)
+             */
+            int serviceType = 3;
+            this.buffer = this.marshaller.makeReservationToByteArray(serviceType, flightId, numSeats);
+            sendMessage(buffer);
+            System.out.println(String.format("%d seats booked for Flight ID: %d", numSeats, flightId));
+        } catch (Exception e) {
             System.out.println("Error: Input is not an integer.");
+            e.printStackTrace();
         }
     }
 
@@ -117,13 +153,13 @@ public class Client {
                 boolean done = false;
                 switch (userInput) {
                     case 1: // invoke flights query
-                        queryFlights();
+                        queryFlights(sc);
                         break;
                     case 2: // invoke flightID query
-                        queryFlightByID();
+                        queryFlightByID(sc);
                         break;
                     case 3: // invoke reservation
-                        makeReservation();
+                        makeReservation(sc);
                         break;
                     case 4: // invoke reservation
                         System.out.println("Exiting program...");
@@ -132,8 +168,9 @@ public class Client {
                         System.out.println("Error: Please select a valid option.");
                         break;
                 }
-            } catch (Exception ex) {
+            } catch (Exception e) {
                 System.out.println("Error: Input is not an integer.");
+                e.printStackTrace();
             }
         }
     }
@@ -142,7 +179,7 @@ public class Client {
         Client client;
 
         try {
-            client = new Client(new DatagramSocket(), InetAddress.getByName("localhost"));
+            client = new Client(new DatagramSocket(), InetAddress.getByName("localhost"), new Marshaller());
             System.out.println("Client is running ...");
             // client.sendMessage();
             client.runConsole();
@@ -158,110 +195,16 @@ public class Client {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 
-    public void viewFlights(Scanner sc) {
-        System.out.println("Enter source: ");
-        String source = sc.next();
-        System.out.println("Enter destination: ");
-        String destination = sc.next();
-
-        /**
-         * Client message:
-         * length of message (int: 4 bytes) +
-         * serviceType (int: 4 bytes) +
-         * length of source (int: 4 bytes) +
-         * source +
-         * length of destination (int: 4 bytes) +
-         * destination
-         */
-        int serviceType = 1;
-        this.buffer = this.marshaller.viewFlightsToByteArray(serviceType, source, destination);
-        sendMessage(buffer);
+    public byte[] receive() throws IOException {
+        DatagramPacket packet = new DatagramPacket(this.buffer, this.buffer.length);
+        this.socket.receive(packet);
+        // unmarshall header packet
+        int[] header = this.marshaller.unmarshallHeaderPacket(packet.getData());
+        int msgLength = header[0], serviceType = header[1];
+//        byte[] receiveData = this.marshaller.unmarshallDataPacket(packet.getData(),msgLength);
+//        return receiveData;
+        return null;
     }
-
-    public void getFlightInfo(Scanner sc) {
-        System.out.println("Enter flight ID: ");
-        int flightId = sc.nextInt();
-
-        /**
-         * Client message:
-         * length of message (int: 4 bytes) +
-         * serviceType (int: 4 bytes) +
-         * flightID (int: 4 bytes)
-         */
-        int serviceType = 2;
-        this.buffer = this.marshaller.getFlightInfoToByteArray(serviceType, flightId);
-        sendMessage(buffer);
-    }
-
-    public void makeReservation(Scanner sc) {
-        System.out.println("Enter flight ID: ");
-        int flightId = sc.nextInt();
-        System.out.println("Enter number of seats: ");
-        int numSeats = sc.nextInt();
-
-        /**
-         * Client message:
-         * length of message (int: 4 bytes) +
-         * serviceType (int: 4 bytes) +
-         * flightID (int: 4 bytes) +
-         * numSeats (int: 4 bytes)
-         */
-        int serviceType = 3;
-        this.buffer = this.marshaller.makeReservationToByteArray(serviceType, flightId, numSeats);
-        sendMessage(buffer);
-    }
-
-    // public static void main(String[] args) {
-    // Client client;
-    // Scanner sc = new Scanner(System.in);
-    // try {
-    // client = new Client(new DatagramSocket(), InetAddress.getByName("localhost"),
-    // new Marshaller());
-    // System.out.println("Client is running ...");
-
-    // while(true) {
-    // System.out.println("Choose a service:");
-    // System.out.println("1. View a list of flights by specifying a source and
-    // destination");
-    // System.out.println("2. Get the departure time, airfare and seat availability
-    // of a flight by specifying the flight ID");
-    // System.out.println("3. Make a reservation by specifying the flight ID and the
-    // number of seats to reserve");
-    // System.out.println("4. Monitor updates to the seat availability of a flight
-    // by specifying the flight ID");
-    // System.out.println("5. Exit");
-
-    // int choice = sc.nextInt();
-    // switch(choice) {
-    // case 1:
-    // client.viewFlights(sc);
-    // break;
-    // case 2:
-    // client.getFlightInfo(sc);
-    // break;
-    // case 3:
-    // client.makeReservation(sc);
-    // break;
-    // case 4:
-    // // client.monitorUpdates(sc);
-    // break;
-    // case 5:
-    // sc.close();
-    // System.out.println("Exiting...");
-    // System.exit(0);
-    // break;
-    // default:
-    // System.out.println("Invalid choice. Please try again.");
-    // break;
-    // }
-    // }
-    // } catch (IOException e) {
-    // e.printStackTrace();
-    // }
-
-    // sc.close();
-    // }
 }
