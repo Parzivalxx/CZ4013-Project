@@ -3,56 +3,63 @@ package server;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.SocketException;
-import java.rmi.MarshalException;
 
-import entity.*;
 import utils.*;
 
 public class Server {
     
     private DatagramSocket socket;
-    private byte[] buffer = new byte[256];
+    private byte[] buffer = new byte[256];  //assume max request length is 256 bytes
     private static final int PORT = 5000;
+    private Marshaller marshaller;
 
-    public Server(DatagramSocket socket) {
+    public Server(DatagramSocket socket, Marshaller marshaller) {
         this.socket = socket;
+        this.marshaller = marshaller;
     }
 
-    public void receiveMessage(Marshaller marshaller) {
-        while(true) {
-            try {
-                DatagramPacket packet = new DatagramPacket(this.buffer, this.buffer.length);
-                socket.receive(packet);
-                InetAddress clientAddress = packet.getAddress();
-                int clientPort = packet.getPort();
-
-                //unmarshalling here
-                Flight flight = marshaller.byteArrayToFlight(packet.getData());
-                System.out.println(flight.toString());
-
-                // //marshalling here
-                // System.out.println("Sending message back to IP Address: " + clientAddress + " and port " + clientPort + "...");
-                // packet = new DatagramPacket(message.getBytes(), message.getBytes().length, clientAddress, clientPort);
-                // socket.send(packet);
-            } catch (IOException e) {
-                e.printStackTrace();
-                break;
-            }
-        }
-    }
-
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         Server server;
-        Marshaller marshaller = new Marshaller();
+
         try {
-            //server listens to port 5000
-            server = new Server(new DatagramSocket(PORT));
+            server = new Server(new DatagramSocket(PORT), new Marshaller());
             System.out.println("Server is listening on port " + PORT + "...");
-            server.receiveMessage(marshaller);
-        } catch (SocketException e) {
+
+            while(true) {
+                DatagramPacket packet = new DatagramPacket(server.buffer, server.buffer.length);
+                server.socket.receive(packet);
+
+                // unmarshall header packet
+                int[] header = server.marshaller.unmarshallHeaderPacket(packet.getData());
+                int msgLength = header[0], serviceType = header[1];
+
+                switch(serviceType) {
+                    case 1:
+                        // perform service 1
+                        String[] srcAndDest = server.marshaller.byteArrayToSourceAndDestination(packet.getData(), msgLength);
+                        System.out.println("Source: " + srcAndDest[0] + ", Destination: " + srcAndDest[1]);
+                        break;
+                    case 2:
+                        // perform service 2
+                        int flightId = server.marshaller.byteArrayToFlightId(packet.getData(), msgLength);
+                        System.out.println("Flight ID: " + flightId);
+                        break;
+                    case 3:
+                        // perform service 3
+                        int[] reservationInfo = server.marshaller.byteArrayToReservationInfo(packet.getData(), msgLength);
+                        System.out.println("Flight ID: " + reservationInfo[0] + ", Number of seats: " + reservationInfo[1]);
+                        break;
+                    case 4:
+                        // perform service 4
+                        break;
+                    default:
+                        System.out.println("Invalid service type.");
+                        break;
+                }
+            }
+        } catch (IOException e) {
             e.printStackTrace();
+            return;
         }
     }
 }
