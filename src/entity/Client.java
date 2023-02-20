@@ -14,6 +14,9 @@ public class Client {
         this.personalBookings = new HashMap<>();
     }
 
+    public InetAddress getClientAddress() {return clientAddress};
+    public int getClientPort() {return clientPort};
+
     public HashMap<Integer, Integer> getPersonalBookings() {
         return personalBookings;
     }

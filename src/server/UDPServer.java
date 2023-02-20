@@ -5,95 +5,99 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+
+import entity.ClientMessage;
 import entity.ClientRecord;
+import entity.Client;
 import java.util.HashMap;
 import java.util.ArrayList;
+import utils.Marshaller;
+import utils.Constants;
+import controller.FlightManager;
+import controller.ClientManager;
 
 class UDPServer {
 
-    private DatagramSocket udpSocket;
+    private DatagramSocket socket;
+    private byte[] buffer = new byte[256];  //assume max request length is 256 bytes
     private static final int PORT = 5000;
     private int idCounter;
     private HashMap<ClientRecord, byte[]> clientRecords;
+    private Marshaller marshaller;
     private double failProb;
 
-    private UDPServer(int port) throws SocketException {
-        this.udpSocket = udpSocket;
+    private UDPServer(DatagramSocket socket, Marshaller marshaller) throws SocketException {
+        this.socket = socket;
         this.idCounter = 0;
         this.clientRecords = new HashMap<>();
         this.failProb = Constants.DEFAULT_SERVER_FAILURE_PROB;
     }
 
     public static void main(String[] args) throws Exception {
-        boolean moreQuotes = true;
+        try {
+            UDPServer udpServer = new UDPServer(new DatagramSocket(PORT), new Marshaller());
+            System.out.println("Server is listening on port " + PORT + "...");
 
-        int port = Constants.DEFAULT_SERVER_PORT;
-        boolean handled;
+            FlightManager flightManager = new FlightManager();
+            flightManager.initialiseDummyData();
 
-        UDPServer udpServer = new UDPServer(port);
+            ClientManager clientManager = new ClientManager();
+            String invocationSemantic = args[0];
 
-        FlightManager flightManager = new FlightManager();
-        flightManager.initialiseDummyData();
+            while(true) {
+                DatagramPacket packet = new DatagramPacket(udpServer.buffer, udpServer.buffer.length);
+                udpServer.socket.receive(packet);
 
-        while (moreQuotes) {
-            try {
-                ClientMessage message = udpServer.receive();
+                // unmarshall header packet
+                int[] header = udpServer.marshaller.unmarshallHeaderPacket(packet.getData());
+                int msgLength = header[0], serviceType = header[1];
 
-                if (Constants.InvoSem.DEFAULT != Constants.InvoSem.AT_MOST_ONCE) handled = false;
-                else handled = udpServer.checkAndSendOldResponse(message);
-                if (!handled) {
-                    int curID = udpServer.getID();
-                    byte[] packageByte;
-                    switch (message.serviceType) {
-                        case Constants.SERVICE_GET_FLIGHT_DETAILS:
-                            packageByte = ServerFlightDetails.handleResponse(curID, message.payload, flightManager);
-                            packageByte = udpServer.addHeaders(packageByte, curID, message.serviceType);
-                            udpServer.updateMemo(message, packageByte);
-                            udpServer.send(packageByte, message.clientAddress, message.clientPort);
-                            break;
-                        case Constants.SERVICE_GET_FLIGHT_BY_SOURCE_DESTINATION:
-                            packageByte = ServerFlightsBySourceDestination.handleResponse(curID, message.payload, flightManager);
-                            packageByte = udpServer.addHeaders(packageByte, curID, message.serviceType);
-                            udpServer.updateMemo(message, packageByte);
-                            udpServer.send(packageByte, message.clientAddress, message.clientPort);
-                            break;
-                        case Constants.SERVICE_RESERVE_SEATS:
-                            packageByte = ServerReserveSeats.handleResponse(curID, message.payload, flightManager);
-                            packageByte = udpServer.addHeaders(packageByte, curID, message.serviceType);
-                            udpServer.updateMemo(message, packageByte);
-                            udpServer.send(packageByte, message.clientAddress, message.clientPort);
-                            break;
-                        case Constants.SERVICE_MONITOR_AVAILABILITY:
-                            packageByte = ServerMonitorAvailability.handleResponse(curID, message.payload, flightManager,
-                                    message.clientAddress, message.clientPort, udpServer.udpSocket);
-                            packageByte = udpServer.addHeaders(packageByte, curID, message.serviceType);
-                            udpServer.updateMemo(message, packageByte);
-                            udpServer.send(packageByte, message.clientAddress, message.clientPort);
-                            break;
-                        case Constants.SERVICE_GET_FLIGHTS_BY_PRICE:
-                            packageByte = ServerFlightsByPrice.handleResponse(curID, message.payload, flightManager);
-                            packageByte = udpServer.addHeaders(packageByte, curID, message.serviceType);
-                            udpServer.updateMemo(message, packageByte);
-                            udpServer.send(packageByte, message.clientAddress, message.clientPort);
-                            break;
-                        case Constants.SERVICE_TOP_UP_ACCOUNT:
-                            packageByte = ServerTopUpAccount.handleResponse(curID, message.payload, flightManager);
-                            packageByte = udpServer.addHeaders(packageByte, curID, message.serviceType);
-                            udpServer.updateMemo(message, packageByte);
-                            udpServer.send(packageByte, message.clientAddress, message.clientPort);
-                            break;
-                        default:
-                            System.out.println(Constants.UNRECOGNIZE_SVC_MSG);
-                    }
+                Client client;
+                client = clientManager.getClientByAddressAndPort(packet.getAddress(), packet.getPort());
+                if (client == null) {
+                    client = new Client(packet.getAddress(), packet.getPort());
+                    clientManager.addClient(client);
                 }
-                System.out.println(Constants.SEPARATOR);
 
-            } catch (IOException e) {
-                e.printStackTrace();
-                moreQuotes = false;
+                boolean handled;
+
+                // unmarshall responseID
+                int responseID = 1; // dummy value
+//                if (invocationSemantic.equals("atmostonce")) {
+//                    handled = udpServer.checkandResend()
+//                }
+
+                // initialize Client object and add to clientManager
+
+                switch(serviceType) {
+                    case 1:
+                        // perform service 1
+                        String[] srcAndDest = udpServer.marshaller.byteArrayToSourceAndDestination(packet.getData(), msgLength);
+                        System.out.println("Source: " + srcAndDest[0] + ", Destination: " + srcAndDest[1]);
+                        break;
+                    case 2:
+                        // perform service 2
+                        int flightId = udpServer.marshaller.byteArrayToFlightId(packet.getData(), msgLength);
+                        System.out.println("Flight ID: " + flightId);
+                        break;
+                    case 3:
+                        // perform service 3
+                        int[] reservationInfo = udpServer.marshaller.byteArrayToReservationInfo(packet.getData(), msgLength);
+                        System.out.println("Flight ID: " + reservationInfo[0] + ", Number of seats: " + reservationInfo[1]);
+                        break;
+                    case 4:
+                        // perform service 4
+                        break;
+                    default:
+                        System.out.println("Invalid service type.");
+                        break;
+                }
             }
+        } catch (IOException e) {
+            e.printStackTrace();
+            return;
         }
-        udpServer.udpSocket.close();
+        udpServer.socket.close();
     }
 
     private byte[] addHeaders(byte[] packageByte, int id, int serviceNum) throws IOException {
@@ -156,8 +160,8 @@ class UDPServer {
         );
     }
 
-    private boolean checkAndSendOldResponse(ClientMessage message) {
-        ClientRecord record = new ClientRecord(message.clientAddress, message.clientPort, message.responseId);
+    private boolean checkandResend(ClientMessage message) {
+        ClientRecord record = new ClientRecord(message.clientAddress, message.clientPort,message.responseId);
         boolean isKeyPresent = this.memo.containsKey(record);
         if (isKeyPresent) {
             byte[] packageByte = this.memo.get(record);

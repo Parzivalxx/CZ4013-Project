@@ -3,7 +3,7 @@ package controller;
 import java.util.ArrayList;
 import entity.Flight;
 import entity.Client;
-
+import entity.DateTime;
 
 public class FlightManager {
     private ArrayList<Flight> flights;
@@ -59,4 +59,12 @@ public class FlightManager {
         return 0;
     }
 
+    public void initialiseDummyData() {
+        DateTime dt1 = new DateTime(2023, 1, 1, 1, 11);
+        DateTime dt2 = new DateTime(2023, 2, 2, 2, 22);
+        DateTime dt3 = new DateTime(2023, 3, 3, 3, 33);
+        this.flights.add(new Flight(1, dt1, 11.1f, 5, "SG", "MY"));
+        this.flights.add(new Flight(2, dt2, 22.2f, 5, "TH", "AU"));
+        this.flights.add(new Flight(3, dt3, 33.3f, 5, "VN", "UK"));
+    }
 }

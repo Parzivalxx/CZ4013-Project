@@ -1,6 +1,8 @@
 package controller;
 
 import java.util.ArrayList;
+import java.net.InetAddress;
+
 import entity.Client;
 
 public class ClientManager {
@@ -10,12 +12,21 @@ public class ClientManager {
         this.clients = new ArrayList<>();
     }
 
+    public ArrayList<Client> getClients() {return clients;}
+
     public void addClient(Client client) {
         clients.add(client);
     }
 
     public void removeClient(Client client) {
         clients.remove(client);
+    }
+
+    public Client getClientByAddressAndPort(InetAddress clientAddress, int clientPort) {
+        for (Client c : clients) {
+            if (c.getClientAddress() == clientAddress && c.getClientPort() == clientPort) return c;
+        }
+        return null;
     }
 
 }
