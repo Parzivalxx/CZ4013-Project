@@ -6,14 +6,14 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.Scanner;
 
-public class udpClient {
+public class UDPClient {
 
     private DatagramSocket socket;
     private InetAddress serverAddress;
     private byte[] buffer;
     private final int PORT = 5000;
 
-    public udpClient(DatagramSocket socket, InetAddress serverAddress) {
+    public UDPClient(DatagramSocket socket, InetAddress serverAddress) {
         this.socket = socket;
         this.serverAddress = serverAddress;
     }
@@ -43,9 +43,9 @@ public class udpClient {
     }
 
     public static void main(String[] args) {
-        udpClient client;
+        UDPClient client;
         try {
-            client = new udpClient(new DatagramSocket(), InetAddress.getByName("localhost"));
+            client = new UDPClient(new DatagramSocket(), InetAddress.getByName("localhost"));
             System.out.println("Client is running ...");
             client.sendMessage();
         } catch (IOException e) {

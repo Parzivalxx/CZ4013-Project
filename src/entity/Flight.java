@@ -18,8 +18,7 @@ public class Flight {
      * @param airfare
      * @param seatAvailability
      */
-    public Flight(int flightId, String source, String destination, DateTime departureTime, float airfare,
-                  int seatAvailability) {
+    public Flight(int flightId, String source, String destination, DateTime departureTime, float airfare, int seatAvailability) {
         this.flightId = flightId;
         this.source = source;
         this.destination = destination;
