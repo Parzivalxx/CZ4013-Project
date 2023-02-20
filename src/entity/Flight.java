@@ -2,29 +2,29 @@ package entity;
 
 public class Flight {
     private int flightId;
-    private String source;
-    private String destination;
     private DateTime departureTime;
     private float airfare;
     private int seatAvailability;
+    private String source;
+    private String destination;
 
     /**
      * Constructor
      *
      * @param flightId
-     * @param source
-     * @param destination
      * @param departureTime
      * @param airfare
      * @param seatAvailability
+     * @param source
+     * @param destination
      */
-    public Flight(int flightId, String source, String destination, DateTime departureTime, float airfare, int seatAvailability) {
+    public Flight(int flightId, DateTime departureTime, float airfare, int seatAvailability, String source, String destination) {
         this.flightId = flightId;
-        this.source = source;
-        this.destination = destination;
         this.departureTime = departureTime;
         this.airfare = airfare;
         this.seatAvailability = seatAvailability;
+        this.source = source;
+        this.destination = destination;
     }
 
     /**
@@ -39,34 +39,6 @@ public class Flight {
      */
     public void setFlightId(int flightId) {
         this.flightId = flightId;
-    }
-
-    /**
-     * @return the source
-     */
-    public String getSource() {
-        return source;
-    }
-
-    /**
-     * @param source the source to set
-     */
-    public void setSource(String source) {
-        this.source = source;
-    }
-
-    /**
-     * @return the destination
-     */
-    public String getDestination() {
-        return destination;
-    }
-
-    /**
-     * @param destination the destination to set
-     */
-    public void setDestination(String destination) {
-        this.destination = destination;
     }
 
     /**
@@ -137,5 +109,40 @@ public class Flight {
             return flightId == s.flightId;
         }
         return false;
+    }
+
+    /**
+     * @return the source
+     */
+    public String getSource() {
+        return source;
+    }
+
+    /**
+     * @param source the source to set
+     */
+    public void setSource(String source) {
+        this.source = source;
+    }
+
+    /**
+     * @return the destination
+     */
+    public String getDestination() {
+        return destination;
+    }
+
+    /**
+     * @param destination the destination to set
+     */
+    public void setDestination(String destination) {
+        this.destination = destination;
+    }
+
+    
+    @Override
+    public String toString() {
+        return "Flight ID: " + this.flightId + "\nSource: " + this.source + "\nDestination: " + this.destination + "\nDeparture Time: "
+                + this.departureTime.toString() + "\nAirfare: " + this.airfare + "\nSeat Availability: " + this.seatAvailability;
     }
 }
