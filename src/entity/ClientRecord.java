@@ -15,7 +15,8 @@ public class ClientRecord {
     public boolean equals(Object obj) {
         if (obj instanceof ClientRecord) {
             ClientRecord s = (ClientRecord) obj;
-            return
+            
         }
+        return true;
     }
 }

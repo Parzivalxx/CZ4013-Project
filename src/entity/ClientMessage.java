@@ -1,19 +1,40 @@
 package entity;
 
 import entity.Client;
+
 public class ClientMessage {
     private Client client;
-    int responseId;
-    byte[] payload;
-    int serviceType;
-    int msgLength;
+    private int queryLength;
+    private int serviceType;
+    private int requestId;
+    private byte[] payload;
 
-    public ClientMessage(Client client, int responseId, byte[] payload, int serviceType, int msgLength) {
+    public ClientMessage(Client client, int queryLength, int serviceType, int requestId, byte[] payload) {
         this.client = client;
-        this.responseId = responseId;
-        this.payload = payload;
+        this.queryLength = queryLength;
         this.serviceType = serviceType;
-        this.msgLength = msgLength;
+        this.requestId = requestId;
+        this.payload = payload;
+    }
+
+    public Client getClient() {
+        return this.client;
+    }
+
+    public int getQueryLength() {
+        return this.queryLength;
+    }
+
+    public int getServiceType() {
+        return this.serviceType;
+    }
+
+    public int getRequestId() {
+        return this.requestId;
+    }
+
+    public byte[] getPayload() {
+        return this.payload;
     }
 
 }

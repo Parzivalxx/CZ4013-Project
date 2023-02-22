@@ -4,18 +4,27 @@ import java.net.InetAddress;
 import java.util.HashMap;
 
 public class Client {
-    private InetAddress clientAddress;
-    private int clientPort;
+    private InetAddress address;
+    private int port;
     private HashMap<Integer, Integer> personalBookings;
 
-    public Client(InetAddress clientAddress, int clientPort) {
-        this.clientAddress = clientAddress;
-        this.clientPort = clientPort;
+    public Client(InetAddress address, int port) {
+        this.address = address;
+        this.port = port;
         this.personalBookings = new HashMap<>();
     }
 
-    public InetAddress getClientAddress() {return clientAddress};
-    public int getClientPort() {return clientPort};
+    public InetAddress getAddress() {
+        return this.address;
+    };
+
+    public String printAddress() {
+        return this.address.getHostAddress();
+    }
+
+    public int getPort() {
+        return this.port;
+    };
 
     public HashMap<Integer, Integer> getPersonalBookings() {
         return personalBookings;
@@ -52,7 +61,7 @@ public class Client {
     public boolean equals(Object obj) {
         if (obj instanceof Client) {
             Client s = (Client) obj;
-            return clientAddress.equals(s.clientAddress) && clientPort == s.clientPort;
+            return address.equals(s.address) && port == s.port;
         }
         return false;
     }

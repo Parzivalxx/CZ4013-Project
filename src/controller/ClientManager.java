@@ -24,7 +24,7 @@ public class ClientManager {
 
     public Client getClientByAddressAndPort(InetAddress clientAddress, int clientPort) {
         for (Client c : clients) {
-            if (c.getClientAddress() == clientAddress && c.getClientPort() == clientPort) return c;
+            if (c.getAddress() == clientAddress && c.getPort() == clientPort) return c;
         }
         return null;
     }

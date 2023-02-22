@@ -5,7 +5,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.Scanner;
-import util.*;
+import utils.*;
 
 public class UDPClient {
 
@@ -14,8 +14,9 @@ public class UDPClient {
     private byte[] buffer;
     private final int PORT = 5000;
     private Marshaller marshaller;
+    private int idCounter = 1;
 
-    public UDPClient(DatagramSocket socket, InetAddress serverAddress) {
+    public UDPClient(DatagramSocket socket, InetAddress serverAddress, Marshaller marshaller) {
         this.socket = socket;
         this.serverAddress = serverAddress;
         this.marshaller = marshaller;
@@ -38,16 +39,18 @@ public class UDPClient {
 
         /**
          * Client message: 
-         * length of message (int: 4 bytes) + 
+         * length of query message (int: 4 bytes) + 
          * serviceType (int: 4 bytes) + 
+         * requestId (int: 4 bytes) +
          * length of source (int: 4 bytes) + 
          * source + 
          * length of destination (int: 4 bytes) + 
          * destination
          */
         int serviceType = 1;
-        this.buffer = this.marshaller.viewFlightsToByteArray(serviceType, source, destination);
+        this.buffer = this.marshaller.viewFlightsToByteArray(serviceType, this.idCounter, source, destination);
         sendMessage(buffer);
+        this.idCounter++;
     }
 
     public void getFlightInfo(Scanner sc) {
@@ -56,13 +59,15 @@ public class UDPClient {
 
         /**
          * Client message: 
-         * length of message (int: 4 bytes) + 
+         * length of query message (int: 4 bytes) + 
          * serviceType (int: 4 bytes) + 
+         * requestId (int: 4 bytes) +
          * flightID (int: 4 bytes)
          */
         int serviceType = 2;
-        this.buffer = this.marshaller.getFlightInfoToByteArray(serviceType, flightId);
+        this.buffer = this.marshaller.getFlightInfoToByteArray(serviceType, this.idCounter, flightId);
         sendMessage(buffer);
+        this.idCounter++;
     }
 
     public void makeReservation(Scanner sc) {
@@ -73,23 +78,24 @@ public class UDPClient {
 
         /**
          * Client message: 
-         * length of message (int: 4 bytes) + 
+         * length of query message (int: 4 bytes) + 
          * serviceType (int: 4 bytes) + 
+         * requestId (int: 4 bytes) +
          * flightID (int: 4 bytes) + 
          * numSeats (int: 4 bytes)
          */
         int serviceType = 3;
-        this.buffer = this.marshaller.makeReservationToByteArray(serviceType, flightId, numSeats);
+        this.buffer = this.marshaller.makeReservationToByteArray(serviceType, this.idCounter, flightId, numSeats);
         sendMessage(buffer);
+        this.idCounter++;
     }
 
     public static void main(String[] args) {
         UDPClient client;
-        try {
-            client = new UDPClient(new DatagramSocket(), InetAddress.getByName("localhost"));
         Scanner sc = new Scanner(System.in);
+
         try {
-            client = new Client(new DatagramSocket(), InetAddress.getByName("localhost"), new Marshaller());
+            client = new UDPClient(new DatagramSocket(), InetAddress.getByName("localhost"), new Marshaller());
             System.out.println("Client is running ...");
             
             while(true) {
