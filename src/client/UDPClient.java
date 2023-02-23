@@ -120,7 +120,7 @@ public class UDPClient {
              * numSeats (int: 4 bytes)
              */
             int serviceType = 3;
-            this.buffer = this.marshaller.makeReservationToByteArray(serviceType, this.idCounter++, flightId, numSeats);
+            this.buffer = this.marshaller.makeReservationToByteArray(serviceType, this.idCounter, flightId, numSeats);
             sendAndReceive(buffer);
             this.idCounter++;
             System.out.println(String.format("%d seats booked for Flight ID: %d", numSeats, flightId));

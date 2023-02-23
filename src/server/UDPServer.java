@@ -25,6 +25,7 @@ class UDPServer {
     private int idCounter;
     private HashMap<ClientRecord, byte[]> clientRecords;
     private double failProb;
+    private int invSem;
 
     private UDPServer(DatagramSocket socket, Marshaller marshaller) throws SocketException {
         this.socket = socket;
@@ -32,6 +33,7 @@ class UDPServer {
         this.idCounter = 0;
         this.clientRecords = new HashMap<>();
         this.failProb = Constants.DEFAULT_SERVER_FAILURE_PROB;
+        this.invSem = Constants.InvSem.DEFAULT;
     }
 
     public static void main(String[] args) throws Exception {
@@ -57,43 +59,55 @@ class UDPServer {
                 client = clientManager.getClientByAddressAndPort(packet.getAddress(), packet.getPort());
                 if (client == null) {
                     client = new Client(packet.getAddress(), packet.getPort());
+                    ClientRecord record = new ClientRecord(client, requestId);
+                    ClientRecord record2 = new ClientRecord(client, requestId);
+                    System.out.println(record.equals(record2));
                     clientManager.addClient(client);
                 }
 
                 boolean handled;
+                if(udpServer.invSem==0) {
+                    handled = udpServer.checkAndResend(client, requestId);
+                } else handled= false;
                 
                 ClientMessage clientMessage = new ClientMessage(client, queryLength, serviceType, requestId, packet.getData());
 
-                switch(serviceType) {
-                    case 1:
-                        // perform service 1
-                        String[] srcAndDest = udpServer.marshaller.byteArrayToSourceAndDestination(clientMessage);
-                        System.out.println("Request from: " + clientMessage.getClient().printAddress() + ":" + clientMessage.getClient().getPort());
-                        System.out.println("Request ID: " + requestId);
-                        System.out.println("Source: " + srcAndDest[0] + ", Destination: " + srcAndDest[1]);
-                        String reply = "Server reply here";
-                        udpServer.send(reply.getBytes(), client.getAddress(), client.getPort());
-                        break;
-                    case 2:
-                        // perform service 2
-                        int flightId = udpServer.marshaller.byteArrayToFlightId(clientMessage);
-                        System.out.println("Request from: " + clientMessage.getClient().printAddress() + ":" + clientMessage.getClient().getPort());
-                        System.out.println("Request ID: " + requestId);
-                        System.out.println("Flight ID: " + flightId);
-                        break;
-                    case 3:
-                        // perform service 3
-                        int[] reservationInfo = udpServer.marshaller.byteArrayToReservationInfo(clientMessage);
-                        System.out.println("Request from: " + clientMessage.getClient().printAddress() + ":" + clientMessage.getClient().getPort());
-                        System.out.println("Request ID: " + requestId);
-                        System.out.println("Flight ID: " + reservationInfo[0] + ", Number of seats: " + reservationInfo[1]);
-                        break;
-                    case 4:
-                        // perform service 4
-                        break;
-                    default:
-                        System.out.println("Invalid service type.");
-                        break;
+                if(!handled){
+                    byte[] reply;
+                    switch(serviceType) {
+                        case 1:
+                            // perform service 1
+                            String[] srcAndDest = udpServer.marshaller.byteArrayToSourceAndDestination(clientMessage);
+                            System.out.println("Request from: " + clientMessage.getClient().printAddress() + ":" + clientMessage.getClient().getPort());
+                            System.out.println("Request ID: " + requestId);
+                            System.out.println("Source: " + srcAndDest[0] + ", Destination: " + srcAndDest[1]);
+                            // add marshaller and logic to retrieve flight array
+                            reply = "Server reply here".getBytes();
+                            System.out.println("replying client...");
+                            udpServer.send(reply, client.getAddress(), client.getPort());
+                            udpServer.updateRecords(clientMessage,reply);
+                            break;
+                        case 2:
+                            // perform service 2
+                            int flightId = udpServer.marshaller.byteArrayToFlightId(clientMessage);
+                            System.out.println("Request from: " + clientMessage.getClient().printAddress() + ":" + clientMessage.getClient().getPort());
+                            System.out.println("Request ID: " + requestId);
+                            System.out.println("Flight ID: " + flightId);
+                            break;
+                        case 3:
+                            // perform service 3
+                            int[] reservationInfo = udpServer.marshaller.byteArrayToReservationInfo(clientMessage);
+                            System.out.println("Request from: " + clientMessage.getClient().printAddress() + ":" + clientMessage.getClient().getPort());
+                            System.out.println("Request ID: " + requestId);
+                            System.out.println("Flight ID: " + reservationInfo[0] + ", Number of seats: " + reservationInfo[1]);
+                            break;
+                        case 4:
+                            // perform service 4
+                            break;
+                        default:
+                            System.out.println("Invalid service type.");
+                            break;
+                    }
                 }
             }
 
@@ -122,9 +136,13 @@ class UDPServer {
     // }
 
     private void send(byte[] message, InetAddress clientAddress, int clientPort) throws IOException, InterruptedException {
-
-        DatagramPacket reply = new DatagramPacket(message, message.length, clientAddress, clientPort);
-        this.socket.send(reply);
+        if (Math.random() < this.failProb) {
+            System.out.println("Server dropping packet to simulate lost request.");
+        }
+        else {
+            DatagramPacket packet = new DatagramPacket(message, message.length, clientAddress, clientPort);
+            this.socket.send(packet);
+        }
     }
 
 
@@ -156,23 +174,24 @@ class UDPServer {
     //     );
     // }
 
-    // private boolean checkandResend(ClientMessage message) {
-    //     ClientRecord record = new ClientRecord(message.clientAddress, message.clientPort,message.responseId);
-    //     boolean isKeyPresent = this.memo.containsKey(record);
-    //     if (isKeyPresent) {
-    //         byte[] packageByte = this.memo.get(record);
-    //         try {
-    //             System.out.println("Duplicate request detected. Resending...");
-    //             this.send(packageByte, message.clientAddress, message.clientPort);
-    //         } catch (Exception e) {
-    //             e.printStackTrace();
-    //         }
-    //     }
-    //     return isKeyPresent;
-    // }
+     private boolean checkAndResend(Client client, int requestId) {
+         ClientRecord record = new ClientRecord(client, requestId);
+         boolean isKeyPresent = this.clientRecords.containsKey(record);
+         System.out.println("duplicated request:"+ isKeyPresent);
+         if (isKeyPresent) {
+             byte[] packageByte = this.clientRecords.get(record);
+             try {
+                 System.out.println("Duplicate request detected. Resending...");
+                 this.send(packageByte, client.getAddress(), client.getPort());
+             } catch (Exception e) {
+                 e.printStackTrace();
+             }
+         }
+         return isKeyPresent;
+     }
 
-    // private void updateMemo(ClientMessage message, byte[] payload) {
-    //     ClientRecord record = new ClientRecord(message.clientAddress, message.clientPort, message.responseId);
-    //     this.memo.put(record, payload);
-    // }
+     private void updateRecords(ClientMessage message, byte[] payload) {
+         ClientRecord record = new ClientRecord(message.getClient(), message.getRequestId());
+         this.clientRecords.put(record, payload);
+     }
 }

@@ -15,8 +15,13 @@ public class ClientRecord {
     public boolean equals(Object obj) {
         if (obj instanceof ClientRecord) {
             ClientRecord s = (ClientRecord) obj;
-            
+            return client.equals(s.client) && id == s.id;
         }
-        return true;
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return (int) id * client.getAddress().hashCode();
     }
 }

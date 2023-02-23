@@ -8,7 +8,7 @@ public class Constants {
     public class InvSem {
         public static final int AT_LEAST_ONCE = 0;
         public static final int AT_MOST_ONCE = 1;
-        public static final int DEFAULT = AT_LEAST_ONCE;
+        public static final int DEFAULT = AT_MOST_ONCE;
     }
     public static final String INVALID_INPUT_MSG = "Error: Invalid input!";
 }
