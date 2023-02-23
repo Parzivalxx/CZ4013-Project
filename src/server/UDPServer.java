@@ -66,7 +66,7 @@ class UDPServer {
                 }
 
                 boolean handled;
-                if(udpServer.invSem==0) {
+                if(udpServer.invSem== Constants.InvSem.AT_MOST_ONCE) {  
                     handled = udpServer.checkAndResend(client, requestId);
                 } else handled= false;
                 

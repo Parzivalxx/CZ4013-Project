@@ -225,6 +225,6 @@ public class UDPClient {
                 }
                 else System.out.println("No reply from server");
             }
-        } while (this.invSem==0); // if using at least once
+        } while (this.invSem != Constants.InvSem.NONE); // if using either at least once or at most once
     }
 }
