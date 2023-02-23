@@ -71,6 +71,8 @@ class UDPServer {
                         System.out.println("Request from: " + clientMessage.getClient().printAddress() + ":" + clientMessage.getClient().getPort());
                         System.out.println("Request ID: " + requestId);
                         System.out.println("Source: " + srcAndDest[0] + ", Destination: " + srcAndDest[1]);
+                        String reply = "Server reply here";
+                        udpServer.send(reply.getBytes(), client.getAddress(), client.getPort());
                         break;
                     case 2:
                         // perform service 2
@@ -119,18 +121,11 @@ class UDPServer {
     //     return this.idCounter;
     // }
 
-    // private void send(byte[] message, InetAddress clientAddress, int clientPort) throws IOException, InterruptedException {
-    //     if (Math.random() < this.failProb) {
-    //         System.out.println("Server dropping packet to simulate lost request");
-    //     } else {
-    //         byte[] header = Utils.marshal(message.length);
-    //         DatagramPacket headerPacket = new DatagramPacket(header, header.length, clientAddress, clientPort);
-    //         this.udpSocket.send(headerPacket);
+    private void send(byte[] message, InetAddress clientAddress, int clientPort) throws IOException, InterruptedException {
 
-    //         DatagramPacket sendPacket = new DatagramPacket(message, message.length, clientAddress, clientPort);
-    //         this.udpSocket.send(sendPacket);
-    //     }
-    // }
+        DatagramPacket reply = new DatagramPacket(message, message.length, clientAddress, clientPort);
+        this.socket.send(reply);
+    }
 
 
     // private ClientMessage receive() throws IOException {
