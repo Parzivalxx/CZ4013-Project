@@ -1,7 +1,5 @@
 package entity;
 
-import entity.Client;
-
 public class ClientMessage {
     private Client client;
     private int queryLength;

@@ -22,7 +22,7 @@ class UDPServer {
     private static final int PORT = 5000;
     private DatagramSocket socket;
     private Marshaller marshaller;
-    private int idCounter;
+    private static int idCounter;
     private HashMap<ClientRecord, byte[]> clientRecords;
     private double failProb;
 
@@ -34,7 +34,7 @@ class UDPServer {
         this.failProb = Constants.DEFAULT_SERVER_FAILURE_PROB;
     }
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         try {
             UDPServer udpServer = new UDPServer(new DatagramSocket(PORT), new Marshaller());
             System.out.println("Server is listening on port " + PORT + "...");
@@ -43,9 +43,8 @@ class UDPServer {
             flightManager.initialiseDummyData();
 
             ClientManager clientManager = new ClientManager();
-            // String invocationSemantic = args[0];
 
-            while(true) {
+            while (true) {
                 DatagramPacket packet = new DatagramPacket(udpServer.buffer, udpServer.buffer.length);
                 udpServer.socket.receive(packet);
 
@@ -59,39 +58,45 @@ class UDPServer {
                     client = new Client(packet.getAddress(), packet.getPort());
                     clientManager.addClient(client);
                 }
-
-                boolean handled;
                 
                 ClientMessage clientMessage = new ClientMessage(client, queryLength, serviceType, requestId, packet.getData());
 
-                switch(serviceType) {
-                    case 1:
-                        // perform service 1
-                        String[] srcAndDest = udpServer.marshaller.byteArrayToSourceAndDestination(clientMessage);
-                        System.out.println("Request from: " + clientMessage.getClient().printAddress() + ":" + clientMessage.getClient().getPort());
-                        System.out.println("Request ID: " + requestId);
-                        System.out.println("Source: " + srcAndDest[0] + ", Destination: " + srcAndDest[1]);
-                        break;
-                    case 2:
-                        // perform service 2
-                        int flightId = udpServer.marshaller.byteArrayToFlightId(clientMessage);
-                        System.out.println("Request from: " + clientMessage.getClient().printAddress() + ":" + clientMessage.getClient().getPort());
-                        System.out.println("Request ID: " + requestId);
-                        System.out.println("Flight ID: " + flightId);
-                        break;
-                    case 3:
-                        // perform service 3
-                        int[] reservationInfo = udpServer.marshaller.byteArrayToReservationInfo(clientMessage);
-                        System.out.println("Request from: " + clientMessage.getClient().printAddress() + ":" + clientMessage.getClient().getPort());
-                        System.out.println("Request ID: " + requestId);
-                        System.out.println("Flight ID: " + reservationInfo[0] + ", Number of seats: " + reservationInfo[1]);
-                        break;
-                    case 4:
-                        // perform service 4
-                        break;
-                    default:
-                        System.out.println("Invalid service type.");
-                        break;
+                boolean handled;
+                String invocationSemantic = args[0];
+                if (!invocationSemantic.equals("atmostonce")) handled = false;
+                else handled = udpServer.checkAndResend(clientMessage);
+
+                if (!handled) {
+                    int serverID = udpServer.getID();
+                    switch(serviceType) {
+                        case 1:
+                            // perform service 1
+                            String[] srcAndDest = udpServer.marshaller.byteArrayToSourceAndDestination(clientMessage);
+                            System.out.println("Request from: " + clientMessage.getClient().printAddress() + ":" + clientMessage.getClient().getPort());
+                            System.out.println("Request ID: " + requestId);
+                            System.out.println("Source: " + srcAndDest[0] + ", Destination: " + srcAndDest[1]);
+                            break;
+                        case 2:
+                            // perform service 2
+                            int flightId = udpServer.marshaller.byteArrayToFlightId(clientMessage);
+                            System.out.println("Request from: " + clientMessage.getClient().printAddress() + ":" + clientMessage.getClient().getPort());
+                            System.out.println("Request ID: " + requestId);
+                            System.out.println("Flight ID: " + flightId);
+                            break;
+                        case 3:
+                            // perform service 3
+                            int[] reservationInfo = udpServer.marshaller.byteArrayToReservationInfo(clientMessage);
+                            System.out.println("Request from: " + clientMessage.getClient().printAddress() + ":" + clientMessage.getClient().getPort());
+                            System.out.println("Request ID: " + requestId);
+                            System.out.println("Flight ID: " + reservationInfo[0] + ", Number of seats: " + reservationInfo[1]);
+                            break;
+                        case 4:
+                            // perform service 4
+                            break;
+                        default:
+                            System.out.println("Invalid service type.");
+                            break;
+                    }
                 }
             }
 
@@ -99,6 +104,12 @@ class UDPServer {
             e.printStackTrace();
             return;
         }
+    }
+
+    private static int getID() {
+        int currID = idCounter;
+        idCounter++;
+        return currID;
     }
 
     // private byte[] addHeaders(byte[] packageByte, int id, int serviceNum) throws IOException {
