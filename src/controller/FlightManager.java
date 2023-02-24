@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import entity.Flight;
 import entity.Client;
 import entity.DateTime;
+import java.util.List;
+import java.util.ArrayList;
 
 public class FlightManager {
     private ArrayList<Flight> flights;

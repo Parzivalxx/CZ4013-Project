@@ -10,7 +10,7 @@ import entity.ClientMessage;
 import entity.ClientRecord;
 import entity.Client;
 import java.util.HashMap;
-import java.util.ArrayList;
+
 import utils.Marshaller;
 import utils.Constants;
 import controller.FlightManager;
@@ -58,41 +58,36 @@ class UDPServer {
                 client = clientManager.getClientByAddressAndPort(packet.getAddress(), packet.getPort());
                 if (client == null) {
                     client = new Client(packet.getAddress(), packet.getPort());
-                    ClientRecord record = new ClientRecord(client, requestId);
-                    ClientRecord record2 = new ClientRecord(client, requestId);
-                    System.out.println(record.equals(record2));
                     clientManager.addClient(client);
                 }
 
                 boolean handled;
-                if(udpServer.invSem== Constants.InvSem.AT_MOST_ONCE) {  
+                if (udpServer.invSem == Constants.InvSem.AT_MOST_ONCE) {
                     handled = udpServer.checkAndResend(client, requestId);
-                } else handled= false;
+                } else handled = false;
                 
                 ClientMessage clientMessage = new ClientMessage(client, queryLength, serviceType, requestId, packet.getData());
 
-                if(!handled){
+                if (!handled) {
                     byte[] reply;
->>>>>>> origin/jk
-                    switch(serviceType) {
+                    int currID = udpServer.getID();
+                    System.out.println("Request from: " + clientMessage.getClient().printAddress() + ":" + clientMessage.getClient().getPort());
+                    System.out.println("Request ID: " + requestId);
+                    switch (serviceType) {
                         case 1:
                             // perform service 1
-                            String[] srcAndDest = udpServer.marshaller.byteArrayToSourceAndDestination(clientMessage);
-                            System.out.println("Request from: " + clientMessage.getClient().printAddress() + ":" + clientMessage.getClient().getPort());
-                            System.out.println("Request ID: " + requestId);
-                            System.out.println("Source: " + srcAndDest[0] + ", Destination: " + srcAndDest[1]);
                             // add marshaller and logic to retrieve flight array
-                            reply = "Server reply here".getBytes();
+                            reply = FlightsBySourceDestinationHandler.handleResponse(currID, serviceType, clientMessage, flightManager);
                             System.out.println("replying client...");
                             udpServer.send(reply, client.getAddress(), client.getPort());
                             udpServer.updateRecords(clientMessage,reply);
                             break;
                         case 2:
                             // perform service 2
-                            int flightId = udpServer.marshaller.byteArrayToFlightId(clientMessage);
-                            System.out.println("Request from: " + clientMessage.getClient().printAddress() + ":" + clientMessage.getClient().getPort());
-                            System.out.println("Request ID: " + requestId);
-                            System.out.println("Flight ID: " + flightId);
+                            reply = FlightDetailsByIdHandler.handleResponse(currID, serviceType, clientMessage, flightManager);
+                            System.out.println("replying client...");
+                            udpServer.send(reply, client.getAddress(), client.getPort());
+                            udpServer.updateRecords(clientMessage,reply);
                             break;
                         case 3:
                             // perform service 3
@@ -141,7 +136,7 @@ class UDPServer {
     //     return this.idCounter;
     // }
 
-    private void send(byte[] message, InetAddress clientAddress, int clientPort) throws IOException, InterruptedException {
+    private void send(byte[] message, InetAddress clientAddress, int clientPort) throws IOException {
         if (Math.random() < this.failProb) {
             System.out.println("Server dropping packet to simulate lost request.");
         }

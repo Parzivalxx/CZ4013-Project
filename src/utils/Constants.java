@@ -12,4 +12,8 @@ public class Constants {
         public static final int DEFAULT = AT_MOST_ONCE;
     }
     public static final String INVALID_INPUT_MSG = "Error: Invalid input!";
+
+    // service 1
+    public static final int FLIGHT_FOUND_STATUS = 1;
+    public static final int FLIGHT_NOT_FOUND_STATUS = 0;
 }
