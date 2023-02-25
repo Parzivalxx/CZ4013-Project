@@ -5,12 +5,12 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.util.HashMap;
+import java.util.List;
 
 import entity.ClientMessage;
 import entity.ClientRecord;
 import entity.Client;
-import java.util.HashMap;
-
 import utils.Marshaller;
 import utils.Constants;
 import controller.FlightManager;
@@ -22,7 +22,7 @@ class UDPServer {
     private static final int PORT = 5000;
     private DatagramSocket socket;
     private Marshaller marshaller;
-    private static int idCounter;
+    private int idCounter;
     private HashMap<ClientRecord, byte[]> clientRecords;
     private double failProb;
     private int invSem;
@@ -36,13 +36,40 @@ class UDPServer {
         this.invSem = Constants.InvSem.DEFAULT;
     }
 
+    private int getID() {
+        int currID = idCounter;
+        idCounter++;
+        return currID;
+    }
+
+    private boolean checkAndResend(Client client, int requestId) {
+        ClientRecord record = new ClientRecord(client, requestId);
+        boolean isKeyPresent = this.clientRecords.containsKey(record);
+        System.out.println("duplicated request:"+ isKeyPresent);
+        if (isKeyPresent) {
+            byte[] packageByte = this.clientRecords.get(record);
+            try {
+                System.out.println("Duplicate request detected. Resending...");
+                this.send(packageByte, client.getAddress(), client.getPort());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return isKeyPresent;
+    }
+
+    private void updateRecords(ClientMessage message, byte[] payload) {
+        ClientRecord record = new ClientRecord(message.getClient(), message.getRequestId());
+        this.clientRecords.put(record, payload);
+    }
+
     public static void main(String[] args) {
         try {
             UDPServer udpServer = new UDPServer(new DatagramSocket(PORT), new Marshaller());
             System.out.println("Server is listening on port " + PORT + "...");
 
             FlightManager flightManager = new FlightManager();
-            flightManager.initialiseDummyData();
+            flightManager.initialiseFlights();
 
             ClientManager clientManager = new ClientManager();
 
@@ -76,11 +103,18 @@ class UDPServer {
                     switch (serviceType) {
                         case 1:
                             // perform service 1
-                            // add marshaller and logic to retrieve flight array
-                            reply = FlightsBySourceDestinationHandler.handleResponse(currID, serviceType, clientMessage, flightManager);
-                            System.out.println("replying client...");
-                            udpServer.send(reply, client.getAddress(), client.getPort());
-                            udpServer.updateRecords(clientMessage,reply);
+                            //unmarshall the clientMessage to get the source and destination
+                            String[] srcAndDest = udpServer.marshaller.byteArrayToSourceAndDestination(clientMessage);
+
+                            //get flightIds from specified source and destination
+                            List<Integer> flightIds = flightManager.getFlightsBySourceDestination(srcAndDest[0], srcAndDest[1]);
+
+                            //marshall the return message
+                            byte[] returnMessage = udpServer.marshaller.marshallFlightIds(serviceType, requestId, flightIds);
+
+                            //send the return message
+                            udpServer.send(returnMessage, client.getAddress(), client.getPort());
+                            udpServer.updateRecords(clientMessage, returnMessage);
                             break;
                         case 2:
                             // perform service 2
@@ -110,12 +144,6 @@ class UDPServer {
             e.printStackTrace();
             return;
         }
-    }
-
-    private static int getID() {
-        int currID = idCounter;
-        idCounter++;
-        return currID;
     }
 
     // private byte[] addHeaders(byte[] packageByte, int id, int serviceNum) throws IOException {
@@ -174,25 +202,4 @@ class UDPServer {
     //             messageLength
     //     );
     // }
-
-     private boolean checkAndResend(Client client, int requestId) {
-         ClientRecord record = new ClientRecord(client, requestId);
-         boolean isKeyPresent = this.clientRecords.containsKey(record);
-         System.out.println("duplicated request:"+ isKeyPresent);
-         if (isKeyPresent) {
-             byte[] packageByte = this.clientRecords.get(record);
-             try {
-                 System.out.println("Duplicate request detected. Resending...");
-                 this.send(packageByte, client.getAddress(), client.getPort());
-             } catch (Exception e) {
-                 e.printStackTrace();
-             }
-         }
-         return isKeyPresent;
-     }
-
-     private void updateRecords(ClientMessage message, byte[] payload) {
-         ClientRecord record = new ClientRecord(message.getClient(), message.getRequestId());
-         this.clientRecords.put(record, payload);
-     }
 }

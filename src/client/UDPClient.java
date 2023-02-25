@@ -1,11 +1,9 @@
 package client;
 
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
 import java.net.*;
 import java.util.InputMismatchException;
+import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.TimeoutException;
 
@@ -46,8 +44,7 @@ public class UDPClient {
 
     public void queryFlights() {
         Scanner sc = new Scanner(System.in);
-        System.out.println(
-                "To query for flights based on flight routes, please enter the desired source and destination.");
+        System.out.println("To query for flights based on flight routes, please enter the desired source and destination.");
         System.out.println("Please enter the desired source location.");
         try {
             String src = sc.next();
@@ -74,6 +71,7 @@ public class UDPClient {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        sc.close();
     }
 
     public void queryFlightByID() {
@@ -100,6 +98,7 @@ public class UDPClient {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        sc.close();
     }
 
     public void makeReservation() {
@@ -129,58 +128,7 @@ public class UDPClient {
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    public void runConsole() {
-        String[] options = {
-                "[1] Query flights based on flight routes",
-                "[2] Query flight ID",
-                "[3] Make reservation for flight",
-                "[4] Exit",
-        };
-        int userInput = 0;
-        while (userInput != 4) {
-            printMenu(options);
-            try {
-                Scanner sc = new Scanner(System.in);
-                userInput = sc.nextInt();
-                System.out.println("You entered: " + userInput);
-                boolean done = false;
-                switch (userInput) {
-                    case 1: // invoke flights query
-                        queryFlights();
-                        break;
-                    case 2: // invoke flightID query
-                        queryFlightByID();
-                        break;
-                    case 3: // invoke reservation
-                        makeReservation();
-                        break;
-                    case 4: // WIP (register callback)
-                        System.out.println("Exiting program...");
-                        break;
-                    default:
-                        System.out.println("Error: Please select a valid option.");
-                        break;
-                }
-            } catch (InputMismatchException e) {
-                System.out.println(Constants.INVALID_INPUT_MSG);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    public static void main(String[] args) {
-        UDPClient client;
-        try {
-            client = new UDPClient(new DatagramSocket(), InetAddress.getByName("localhost"), new Marshaller());
-            System.out.println("Client is running ...");
-            // client.sendMessage();
-            client.runConsole();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        sc.close();
     }
 
     public void sendMessage(byte[] byteArray) {
@@ -201,8 +149,24 @@ public class UDPClient {
         socket.receive(packet);
 
         //unmarshalling here to be added
-        String message = new String(packet.getData(), 0, packet.getLength());
-        System.out.println(message);
+        // unmarshall header packet
+        int[] header = this.marshaller.unmarshallHeaderPacket(packet.getData());
+        int serviceType = header[1];
+
+        // unmarshall query packet
+        switch(serviceType) {
+            case 1:
+                List<Integer> flightIds = this.marshaller.unmarshallFlightIds(header, packet.getData());
+                System.out.println("Flight IDs found:");
+                for (int flightId : flightIds) {
+                    System.out.println(flightId);
+                }
+                break;
+            
+        }
+
+        // String message = new String(packet.getData(), 0, packet.getLength());
+        // System.out.println(message);
     }
 
     public void sendAndReceive(byte[] message) throws IOException, TimeoutException {
@@ -226,5 +190,58 @@ public class UDPClient {
                 else System.out.println("No reply from server");
             }
         } while (this.invSem != Constants.InvSem.NONE); // if using either at least once or at most once
+    }
+
+    public void runConsole() {
+        String[] options = {
+                "[1] Query flights based on flight routes",
+                "[2] Query flight ID",
+                "[3] Make reservation for flight",
+                "[4] Exit",
+        };
+
+        int userInput = 0;
+        Scanner sc = new Scanner(System.in);
+        if (userInput != 4) {
+            printMenu(options);
+            try {
+                userInput = sc.nextInt();
+                System.out.println("You entered: " + userInput);
+                switch (userInput) {
+                    case 1: // invoke flights query
+                        queryFlights();
+                        break;
+                    case 2: // invoke flightID query
+                        queryFlightByID();
+                        break;
+                    case 3: // invoke reservation
+                        makeReservation();
+                        break;
+                    case 4: // WIP (register callback)
+                        System.out.println("Exiting program...");
+                        break;
+                    default:
+                        System.out.println("Error: Please select a valid option.");
+                        break;
+                }
+            } catch (InputMismatchException e) {
+                System.out.println(Constants.INVALID_INPUT_MSG);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        sc.close();
+    }
+
+    public static void main(String[] args) {
+        UDPClient client;
+        try {
+            client = new UDPClient(new DatagramSocket(), InetAddress.getByName("localhost"), new Marshaller());
+            System.out.println("Client is running ...");
+            // client.sendMessage();
+            client.runConsole();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

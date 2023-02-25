@@ -1,6 +1,8 @@
 package utils;
 
 import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.ArrayList;
 
 import common.FlightDetailsByIdReply;
 import common.FlightsBySourceDestinationReply;
@@ -8,13 +10,13 @@ import entity.*;
 
 public class Marshaller {
 
-    public static void marshalHeaderPacket(ByteBuffer buffer, int queryLength, int serviceType, int requestId) {
+    public void marshalHeaderPacket(ByteBuffer buffer, int queryLength, int serviceType, int requestId) {
         buffer.putInt(queryLength);
         buffer.putInt(serviceType);
         buffer.putInt(requestId);
     }
 
-    public static int[] unmarshallHeaderPacket(byte[] byteArray) {
+    public int[] unmarshallHeaderPacket(byte[] byteArray) {
         /**
          * msgLength: 4 bytes, index 0-3
          * serviceType: 4 bytes, index 4-7
@@ -43,7 +45,7 @@ public class Marshaller {
     /**
      * Service 1: View Flights
      */
-    public static byte[] viewFlightsToByteArray(int serviceType, int requestId, String source, String destination) {
+    public byte[] viewFlightsToByteArray(int serviceType, int requestId, String source, String destination) {
         /**
          * HEADER:
          * queryLength: 4 bytes
@@ -61,7 +63,7 @@ public class Marshaller {
         ByteBuffer buffer = ByteBuffer.allocate(totalLength);
 
         //marshall fields to byte buffer
-        marshalHeaderPacket(buffer, queryLength, serviceType, requestId);
+        this.marshalHeaderPacket(buffer, queryLength, serviceType, requestId);
 
         buffer.putInt(source.getBytes().length);
         for(byte b : source.getBytes()) {
@@ -76,7 +78,7 @@ public class Marshaller {
         return buffer.array();
     }
 
-    public static String[] byteArrayToSourceAndDestination(ClientMessage clientMessage) {
+    public String[] byteArrayToSourceAndDestination(ClientMessage clientMessage) {
         /**
          * ClientMessage (Client client, Int requestId, Int serviceType, Int queryLength, byte[] payload)
          * 
@@ -114,10 +116,64 @@ public class Marshaller {
         return new String[] {source, destination};
     }
 
+    public byte[] marshallFlightIds(int serviceType, int requestId, List<Integer> flightIds) {
+        /**
+         * 
+         * HEADER:
+         * queryLength: 4 bytes
+         * serviceType: 4 bytes
+         * requestId: 4 bytes
+         * 
+         * listLength: 4 bytes
+         * flightIds: 4 bytes * listLength
+         */
+
+        int listLength = flightIds.size();
+        int queryLength = 4 + 4 * listLength;
+        int totalLength = 12 + queryLength;
+
+        ByteBuffer buffer = ByteBuffer.allocate(totalLength);
+        this.marshalHeaderPacket(buffer, queryLength, serviceType, requestId);
+        
+        buffer.putInt(listLength);
+        for(int flightId : flightIds) {
+            buffer.putInt(flightId);
+        }
+
+        return buffer.array();
+    }
+
+    public List<Integer> unmarshallFlightIds(int[] header, byte[] returnMessage) {
+        /**
+         * int[] header - {queryLength, serviceType, requestId}
+         * 
+         * PAYLOAD:
+         * listLength: 4 bytes
+         * flightIds: 4 bytes * listLength
+         */
+
+        int queryLength = header[0];
+
+        byte[] payload = new byte[queryLength];
+        for(int i = 0; i < queryLength; i++) {
+            payload[i] = returnMessage[i+12];
+        }
+
+        ByteBuffer buffer = ByteBuffer.wrap(payload);
+        int listLength = buffer.getInt();
+
+        List<Integer> flightIds = new ArrayList<>();
+        for(int i = 0; i < listLength; i++) {
+            flightIds.add(buffer.getInt());
+        }
+
+        return flightIds;
+    }
+
     /**
      * Service 2: Get Flight Info
      */
-    public static byte[] getFlightInfoToByteArray(int serviceType, int requestId, int flightId) {
+    public byte[] getFlightInfoToByteArray(int serviceType, int requestId, int flightId) {
         /**
          * HEADER:
          * queryLength: 4 bytes
@@ -132,14 +188,14 @@ public class Marshaller {
         ByteBuffer buffer = ByteBuffer.allocate(totalLength);
 
         //marshall fields to byte buffer
-        marshalHeaderPacket(buffer, queryLength, serviceType, requestId);
+        this.marshalHeaderPacket(buffer, queryLength, serviceType, requestId);
 
         buffer.putInt(flightId);
 
         return buffer.array();
     }
 
-    public static int byteArrayToFlightId(ClientMessage clientMessage) {
+    public int byteArrayToFlightId(ClientMessage clientMessage) {
         /**
          * ClientMessage (Client client, Int requestId, Int serviceType, Int queryLength, byte[] payload)
          * 
@@ -164,29 +220,29 @@ public class Marshaller {
     /**
      * Service 3: Make Reservation
      */
-    public static byte[] makeReservationToByteArray(int serviceType, int requestId, int flightId, int numSeats) {
+    public byte[] makeReservationToByteArray(int serviceType, int requestId, int flightId, int numSeats) {
         /**
          * HEADER:
-         * msgLength: 4 bytes
+         * queryLength: 4 bytes
          * serviceType: 4 bytes
          * requestId: 4 bytes
          * 
          * flightId: 4 bytes
          */
 
-        int msgLength = 4 + 4;
-        int totalLength = 12 + msgLength;
+        int queryLength = 4 + 4;
+        int totalLength = 12 + queryLength;
         ByteBuffer buffer = ByteBuffer.allocate(totalLength);
 
         //marshall fields to byte buffer
-        marshalHeaderPacket(buffer, msgLength, serviceType, requestId);
+        this.marshalHeaderPacket(buffer, queryLength, serviceType, requestId);
 
         buffer.putInt(numSeats);
 
         return buffer.array();
     }
 
-    public static int[] byteArrayToReservationInfo(ClientMessage clientMessage) {
+    public int[] byteArrayToReservationInfo(ClientMessage clientMessage) {
         /**
          * ClientMessage (Client client, Int requestId, Int serviceType, Int queryLength, byte[] payload)
          * 
@@ -209,6 +265,131 @@ public class Marshaller {
 
         return new int[] {flightId, numSeats};
     }
+
+    /*
+     * Service 4: Monitor flights
+     */
+    public byte[] monitoFlightsToByteArray(int serviceType, int requestId, int flightId, int monitorInterval) {
+         /**
+         * HEADER:
+         * queryLength: 4 bytes
+         * serviceType: 4 bytes
+         * requestId: 4 bytes
+         * 
+         * flightId: 4 bytes
+         * monitorInterval: 4 bytes
+         */
+
+        int msgLength = 4 + 4;
+        int totalLength = 12 + msgLength;
+        ByteBuffer buffer = ByteBuffer.allocate(totalLength);
+
+        //marshall fields to byte buffer
+        this.marshalHeaderPacket(buffer, msgLength, serviceType, requestId);
+
+        buffer.putInt(flightId);
+        buffer.putInt(monitorInterval);
+
+        return buffer.array();
+    }
+
+    public int[] byteArrayToMonitorInfo(ClientMessage clientMessage) {
+        /**
+         * ClientMessage (Client client, Int requestId, Int serviceType, Int queryLength, byte[] payload)
+         * 
+         * PAYLOAD:
+         * flightId: 4 bytes
+         * monitorInterval: 4 bytes
+         */
+
+        int queryLength = clientMessage.getQueryLength();
+        byte[] payload = clientMessage.getPayload();
+
+        byte[] query = new byte[queryLength];
+        for(int i = 0; i < queryLength; i++) {
+            query[i] = payload[i+12];
+        }
+
+        ByteBuffer buffer = ByteBuffer.wrap(query);
+        int flightId = buffer.getInt();
+        int monitorInterval = buffer.getInt();
+
+        return new int[] {flightId, monitorInterval};
+    }
+
+    /*
+     * Idempotent service
+     * Service 5: Check user's booking history
+     */
+    public byte[] bookingHistoryToByteArray(int serviceType, int requestId) {
+        /**
+         * HEADER:
+         * queryLength: 4 bytes
+         * serviceType: 4 bytes
+         * requestId: 4 bytes
+         */
+
+        int totalLength = 12;
+        ByteBuffer buffer = ByteBuffer.allocate(totalLength);
+
+        //marshall fields to byte buffer
+        this.marshalHeaderPacket(buffer, 0, serviceType, requestId);
+
+        return buffer.array();
+    }
+
+    /*
+     * Non-idempotent service
+     * Service 6: Cancel booking
+     */
+    public byte[] cancelBookingToByteArray(int serviceType, int requestId, int flightId, int numSeats) {
+        /**
+         * HEADER:
+         * queryLength: 4 bytes
+         * serviceType: 4 bytes
+         * requestId: 4 bytes
+         * 
+         * flightId: 4 bytes
+         * numSeats: 4 bytes
+         */
+
+        int queryLength = 4 + 4;
+        int totalLength = 12 + queryLength;
+        ByteBuffer buffer = ByteBuffer.allocate(totalLength);
+
+        //marshall fields to byte buffer
+        this.marshalHeaderPacket(buffer, queryLength, serviceType, requestId);
+
+        buffer.putInt(flightId);
+        buffer.putInt(numSeats);
+
+        return buffer.array();
+    }
+
+    public int[] byteArrayToCancelInfo(ClientMessage clientMessage) {
+        /**
+         * ClientMessage (Client client, Int requestId, Int serviceType, Int queryLength, byte[] payload)
+         * 
+         * PAYLOAD:
+         * flightId: 4 bytes
+         * numSeats: 4 bytes
+         */
+
+        int queryLength = clientMessage.getQueryLength();
+        byte[] payload = clientMessage.getPayload();
+
+        byte[] query = new byte[queryLength];
+        for(int i = 0; i < queryLength; i++) {
+            query[i] = payload[i+12];
+        }
+
+        ByteBuffer buffer = ByteBuffer.wrap(query);
+        int flightId = buffer.getInt();
+        int numSeats = buffer.getInt();
+
+        return new int[] {flightId, numSeats};
+    }
+
 
     /**
      * Convert flight to byte array

@@ -1,11 +1,11 @@
 package controller;
 
 import java.util.ArrayList;
+import java.util.List;
+
 import entity.Flight;
 import entity.Client;
 import entity.DateTime;
-import java.util.List;
-import java.util.ArrayList;
 
 public class FlightManager {
     private ArrayList<Flight> flights;
@@ -14,13 +14,32 @@ public class FlightManager {
         this.flights = new ArrayList<>();
     }
 
+    public void initialiseFlights() {
+        this.flights.add(
+            new Flight(1, new DateTime(2023, 1, 1, 12, 30), 100.0f, 100, "Singapore", "Malaysia")
+        );
+
+        this.flights.add(
+            new Flight(2, new DateTime(2023, 2, 1, 12, 30), 100.0f, 100, "Singapore", "Malaysia")
+        );
+
+        this.flights.add(
+            new Flight(3, new DateTime(2023, 3, 1, 12, 30), 100.0f, 100, "Singapore", "Malaysia")
+        );
+
+        this.flights.add(
+            new Flight(4, new DateTime(2023, 3, 1, 12, 30), 700.0f, 100, "Singapore", "Italy")
+        );
+    }
+
     /**
      * @param source, starting point of flight
      * @param destination, ending point of flight
-     * @return an ArrayList of flightIds satisfying selected source and destination
+     * @return a List of flightIds satisfying selected source and destination
      */
-    public ArrayList<Integer> getFlightsBySourceDestination(String source, String destination) {
-        ArrayList<Integer> flightIds = new ArrayList<>();
+    public List<Integer> getFlightsBySourceDestination(String source, String destination) {
+        List<Integer> flightIds = new ArrayList<>();
+
         for (Flight f : this.flights) {
             if (source.equalsIgnoreCase(f.getSource()) && destination.equalsIgnoreCase(f.getDestination())) {
                 flightIds.add(f.getFlightId());
@@ -59,14 +78,5 @@ public class FlightManager {
         if (!f.reserveSeats(seatsBooking, isAdding)) return 3;
         if (!client.modifyBooking(flightId, seatsBooking, isAdding)) return 4;
         return 0;
-    }
-
-    public void initialiseDummyData() {
-        DateTime dt1 = new DateTime(2023, 1, 1, 1, 11);
-        DateTime dt2 = new DateTime(2023, 2, 2, 2, 22);
-        DateTime dt3 = new DateTime(2023, 3, 3, 3, 33);
-        this.flights.add(new Flight(1, dt1, 11.1f, 5, "SG", "MY"));
-        this.flights.add(new Flight(2, dt2, 22.2f, 5, "TH", "AU"));
-        this.flights.add(new Flight(3, dt3, 33.3f, 5, "VN", "UK"));
     }
 }
