@@ -141,7 +141,6 @@ class UDPServer {
                             //try to reserve seats for specified flightId
                             int result = flightManager.modifyBookingsForFlight(client, reservationInfo[0], reservationInfo[1], true);
                             String resultString = "";
-                            //TODO: @Parzivalxx - please check if the cases are correct
                             switch(result){
                                 case 0:
                                     resultString = "Reservation successful.";
