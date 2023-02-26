@@ -93,12 +93,12 @@ public class Flight {
     }
 
     public boolean reserveSeats(int seatsBooking, boolean isAdding) {
-        if (!isAdding) {
-            if (seatAvailability < seatsBooking) return false;
-            seatAvailability -= seatsBooking;
+        if (isAdding) {
+            seatAvailability += seatsBooking;
             return true;
         }
-        seatAvailability += seatsBooking;
+        if (seatAvailability < seatsBooking) return false;
+        seatAvailability -= seatsBooking;
         return true;
     }
 

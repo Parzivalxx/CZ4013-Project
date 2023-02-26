@@ -34,11 +34,11 @@ public class Client {
      * modifies booking for client
      * @param flightId, flight modifying
      * @param seatsBooking, seats booking
-     * @param isAdding, whether is adding or removing
+     * @param isAdding, means to be giving up the seats
      * @return. whether modification was successful
      */
     public boolean modifyBooking(int flightId, int seatsBooking, boolean isAdding) {
-        if (!isAdding) {
+        if (isAdding) {
             if (!personalBookings.containsKey(flightId)) return false;
             int currSeatsBooked = personalBookings.get(flightId);
             if (currSeatsBooked < seatsBooking) return false;
