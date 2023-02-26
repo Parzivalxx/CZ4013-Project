@@ -1,14 +1,13 @@
 package client;
 
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
 import java.net.*;
 import java.util.InputMismatchException;
+import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.TimeoutException;
 
+import entity.Flight;
 import utils.*;
 
 public class UDPClient {
@@ -16,7 +15,7 @@ public class UDPClient {
     private DatagramSocket socket;
     private InetAddress serverAddress;
     private byte[] buffer;
-    private final int PORT = 5000;
+    private final int PORT = Constants.DEFAULT_PORT;
     private Marshaller marshaller;
     private int idCounter = 1;
     // Timeout properties
@@ -46,8 +45,7 @@ public class UDPClient {
 
     public void queryFlights() {
         Scanner sc = new Scanner(System.in);
-        System.out.println(
-                "To query for flights based on flight routes, please enter the desired source and destination.");
+        System.out.println("To query for flights based on flight routes, please enter the desired source and destination.");
         System.out.println("Please enter the desired source location.");
         try {
             String src = sc.next();
@@ -74,6 +72,7 @@ public class UDPClient {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        sc.close();
     }
 
     public void queryFlightByID() {
@@ -90,7 +89,7 @@ public class UDPClient {
              * flightID (int: 4 bytes)
              */
             int serviceType = 2;
-            this.buffer = this.marshaller.getFlightInfoToByteArray(serviceType, this.idCounter, flightId);
+            this.buffer = this.marshaller.flightIdToByteArray(serviceType, this.idCounter, flightId);
             sendAndReceive(buffer);
             this.idCounter++;
 //            System.out.println(String.format("Here are the details about Flight ID: %d", flightId));
@@ -100,6 +99,7 @@ public class UDPClient {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        sc.close();
     }
 
     public void makeReservation() {
@@ -129,6 +129,79 @@ public class UDPClient {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        sc.close();
+    }
+
+    public void sendAndReceive(byte[] message) throws IOException, TimeoutException {
+        int tries = 0;
+        System.out.println("Awaiting server reply...");
+        socket.setSoTimeout(timeOut);
+        do{
+            try {
+                this.sendMessage(message);
+                this.receiveMessage();
+                break;
+            } catch (SocketTimeoutException e) {
+                tries++;
+                if (this.maxTries > 0 && tries == this.maxTries) {
+                    System.out.println(String.format("Max tries of %d reached.", this.maxTries));
+                    break;
+                }
+                if(this.invSem == 0){
+                    System.out.printf("Timeout %d, retrying...\n", tries);
+                }
+                else System.out.println("No reply from server");
+            }
+        } while (this.invSem != Constants.InvSem.NONE); // if using either at least once or at most once
+    }
+
+    public void sendMessage(byte[] byteArray) {
+        if (Math.random() < this.failProb) {
+            System.out.println("Client dropping packet to simulate lost request.");
+        } else{
+            DatagramPacket packet = new DatagramPacket(this.buffer, this.buffer.length, this.serverAddress, this.PORT);
+            try {
+                this.socket.send(packet);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public void receiveMessage() throws IOException, TimeoutException {
+        this.buffer = new byte[Constants.MAX_PACKET_SIZE];
+        DatagramPacket packet = new DatagramPacket(this.buffer, this.buffer.length);
+        socket.receive(packet);
+
+        //unmarshalling here to be added
+        // unmarshall header packet
+        int[] header = this.marshaller.byteArrayToHeader(packet.getData());
+        int serviceType = header[1];
+
+        // unmarshall query packet
+        switch(serviceType) {
+            case 1:
+                List<Integer> flightIds = this.marshaller.byteArrayToFlightIds(header, packet.getData());
+                System.out.println("Flight IDs found:");
+                for (int flightId : flightIds) {
+                    System.out.println(flightId);
+                }
+                break;
+
+            case 2:
+                Flight flight = this.marshaller.byteArrayToFlight(header, packet.getData());
+                System.out.println("Flight details:");
+                System.out.println(flight.toString());
+                break;
+
+            case 3:
+                String reservationResult = this.marshaller.byteArrayToReservationResult(header, packet.getData());
+                System.out.println(reservationResult);
+                break;
+        }
+
+        // String message = new String(packet.getData(), 0, packet.getLength());
+        // System.out.println(message);
     }
 
     public void runConsole() {
@@ -138,14 +211,14 @@ public class UDPClient {
                 "[3] Make reservation for flight",
                 "[4] Exit",
         };
+
         int userInput = 0;
-        while (userInput != 4) {
+        Scanner sc = new Scanner(System.in);
+        if (userInput != 4) {
             printMenu(options);
             try {
-                Scanner sc = new Scanner(System.in);
                 userInput = sc.nextInt();
                 System.out.println("You entered: " + userInput);
-                boolean done = false;
                 switch (userInput) {
                     case 1: // invoke flights query
                         queryFlights();
@@ -169,6 +242,7 @@ public class UDPClient {
                 e.printStackTrace();
             }
         }
+        sc.close();
     }
 
     public static void main(String[] args) {
@@ -181,50 +255,5 @@ public class UDPClient {
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    public void sendMessage(byte[] byteArray) {
-        if (Math.random() < this.failProb) {
-            System.out.println("Client dropping packet to simulate lost request.");
-        } else{
-            DatagramPacket packet = new DatagramPacket(this.buffer, this.buffer.length, this.serverAddress, this.PORT);
-            try {
-                this.socket.send(packet);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    public void receiveMessage() throws IOException, TimeoutException {
-        DatagramPacket packet = new DatagramPacket(this.buffer, this.buffer.length);
-        socket.receive(packet);
-
-        //unmarshalling here to be added
-        String message = new String(packet.getData(), 0, packet.getLength());
-        System.out.println(message);
-    }
-
-    public void sendAndReceive(byte[] message) throws IOException, TimeoutException {
-        int tries = 0;
-        System.out.println("Awaiting server reply...");
-        socket.setSoTimeout(timeOut);
-        do{
-            try {
-                this.sendMessage(message);
-                this.receiveMessage();
-                break;
-            } catch (SocketTimeoutException e) {
-                tries++;
-                if (this.maxTries > 0 && tries == this.maxTries) {
-                    System.out.println(String.format("Max tries of %d reached.", this.maxTries));
-                    break;
-                }
-                if(this.invSem==0){
-                    System.out.printf("Timeout %d, retrying...\n", tries);
-                }
-                else System.out.println("No reply from server");
-            }
-        } while (this.invSem != Constants.InvSem.NONE); // if using either at least once or at most once
     }
 }

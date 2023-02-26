@@ -9,10 +9,8 @@ import utils.Marshaller;
 import entity.DateTime;
 
 public class FlightDetailsByIdHandler {
-    public static byte[] handleResponse(int serverID,
-                                        int serviceType,
-                                        ClientMessage clientMessage,
-                                        FlightManager flightManager) {
+    public static byte[] handleResponse(int serverID, int serviceType, ClientMessage clientMessage, FlightManager flightManager) {
+        
         int flightId = Marshaller.byteArrayToFlightId(clientMessage);
         System.out.println("Flight ID: " + flightId);
 
