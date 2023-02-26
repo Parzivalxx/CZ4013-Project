@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.TimeoutException;
 
+import entity.Flight;
 import utils.*;
 
 public class UDPClient {
@@ -14,7 +15,7 @@ public class UDPClient {
     private DatagramSocket socket;
     private InetAddress serverAddress;
     private byte[] buffer;
-    private final int PORT = 5000;
+    private final int PORT = Constants.DEFAULT_PORT;
     private Marshaller marshaller;
     private int idCounter = 1;
     // Timeout properties
@@ -88,7 +89,7 @@ public class UDPClient {
              * flightID (int: 4 bytes)
              */
             int serviceType = 2;
-            this.buffer = this.marshaller.getFlightInfoToByteArray(serviceType, this.idCounter, flightId);
+            this.buffer = this.marshaller.flightIdToByteArray(serviceType, this.idCounter, flightId);
             sendAndReceive(buffer);
             this.idCounter++;
 //            System.out.println(String.format("Here are the details about Flight ID: %d", flightId));
@@ -131,44 +132,6 @@ public class UDPClient {
         sc.close();
     }
 
-    public void sendMessage(byte[] byteArray) {
-        if (Math.random() < this.failProb) {
-            System.out.println("Client dropping packet to simulate lost request.");
-        } else{
-            DatagramPacket packet = new DatagramPacket(this.buffer, this.buffer.length, this.serverAddress, this.PORT);
-            try {
-                this.socket.send(packet);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    public void receiveMessage() throws IOException, TimeoutException {
-        DatagramPacket packet = new DatagramPacket(this.buffer, this.buffer.length);
-        socket.receive(packet);
-
-        //unmarshalling here to be added
-        // unmarshall header packet
-        int[] header = this.marshaller.unmarshallHeaderPacket(packet.getData());
-        int serviceType = header[1];
-
-        // unmarshall query packet
-        switch(serviceType) {
-            case 1:
-                List<Integer> flightIds = this.marshaller.unmarshallFlightIds(header, packet.getData());
-                System.out.println("Flight IDs found:");
-                for (int flightId : flightIds) {
-                    System.out.println(flightId);
-                }
-                break;
-            
-        }
-
-        // String message = new String(packet.getData(), 0, packet.getLength());
-        // System.out.println(message);
-    }
-
     public void sendAndReceive(byte[] message) throws IOException, TimeoutException {
         int tries = 0;
         System.out.println("Awaiting server reply...");
@@ -184,12 +147,61 @@ public class UDPClient {
                     System.out.println(String.format("Max tries of %d reached.", this.maxTries));
                     break;
                 }
-                if(this.invSem==0){
+                if(this.invSem == 0){
                     System.out.printf("Timeout %d, retrying...\n", tries);
                 }
                 else System.out.println("No reply from server");
             }
         } while (this.invSem != Constants.InvSem.NONE); // if using either at least once or at most once
+    }
+
+    public void sendMessage(byte[] byteArray) {
+        if (Math.random() < this.failProb) {
+            System.out.println("Client dropping packet to simulate lost request.");
+        } else{
+            DatagramPacket packet = new DatagramPacket(this.buffer, this.buffer.length, this.serverAddress, this.PORT);
+            try {
+                this.socket.send(packet);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public void receiveMessage() throws IOException, TimeoutException {
+        this.buffer = new byte[Constants.MAX_PACKET_SIZE];
+        DatagramPacket packet = new DatagramPacket(this.buffer, this.buffer.length);
+        socket.receive(packet);
+
+        //unmarshalling here to be added
+        // unmarshall header packet
+        int[] header = this.marshaller.byteArrayToHeader(packet.getData());
+        int serviceType = header[1];
+
+        // unmarshall query packet
+        switch(serviceType) {
+            case 1:
+                List<Integer> flightIds = this.marshaller.byteArrayToFlightIds(header, packet.getData());
+                System.out.println("Flight IDs found:");
+                for (int flightId : flightIds) {
+                    System.out.println(flightId);
+                }
+                break;
+
+            case 2:
+                Flight flight = this.marshaller.byteArrayToFlight(header, packet.getData());
+                System.out.println("Flight details:");
+                System.out.println(flight.toString());
+                break;
+
+            case 3:
+                String reservationResult = this.marshaller.byteArrayToReservationResult(header, packet.getData());
+                System.out.println(reservationResult);
+                break;
+        }
+
+        // String message = new String(packet.getData(), 0, packet.getLength());
+        // System.out.println(message);
     }
 
     public void runConsole() {

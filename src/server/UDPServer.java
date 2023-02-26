@@ -10,6 +10,7 @@ import java.util.List;
 
 import entity.ClientMessage;
 import entity.ClientRecord;
+import entity.Flight;
 import entity.Client;
 import utils.Marshaller;
 import utils.Constants;
@@ -18,8 +19,8 @@ import controller.ClientManager;
 
 class UDPServer {
 
-    private byte[] buffer = new byte[256];  //assume max request length is 256 bytes
-    private static final int PORT = 5000;
+    private byte[] buffer = new byte[Constants.MAX_PACKET_SIZE];
+    private static final int PORT = Constants.DEFAULT_PORT;
     private DatagramSocket socket;
     private Marshaller marshaller;
     private int idCounter;
@@ -78,7 +79,7 @@ class UDPServer {
                 udpServer.socket.receive(packet);
 
                 // unmarshall header packet
-                int[] header = udpServer.marshaller.unmarshallHeaderPacket(packet.getData());
+                int[] header = udpServer.marshaller.byteArrayToHeader(packet.getData());
                 int queryLength = header[0], serviceType = header[1], requestId = header[2];
 
                 Client client;
@@ -110,25 +111,61 @@ class UDPServer {
                             List<Integer> flightIds = flightManager.getFlightsBySourceDestination(srcAndDest[0], srcAndDest[1]);
 
                             //marshall the return message
-                            byte[] returnMessage = udpServer.marshaller.marshallFlightIds(serviceType, requestId, flightIds);
+                            reply = udpServer.marshaller.flightIdsToByteArray(serviceType, requestId, flightIds);
 
                             //send the return message
-                            udpServer.send(returnMessage, client.getAddress(), client.getPort());
-                            udpServer.updateRecords(clientMessage, returnMessage);
+                            udpServer.send(reply, client.getAddress(), client.getPort());
+                            udpServer.updateRecords(clientMessage, reply);
                             break;
+
                         case 2:
                             // perform service 2
-                            reply = FlightDetailsByIdHandler.handleResponse(currID, serviceType, clientMessage, flightManager);
-                            System.out.println("replying client...");
+                            //unmarshall the clientMessage to get the flightId
+                            int flightId = udpServer.marshaller.byteArrayToFlightId(clientMessage);
+
+                            //get flight details from specified flightId
+                            Flight flight = flightManager.getFlightById(flightId);
+
+                            //marshall the return message
+                            reply = udpServer.marshaller.flightToByteArray(serviceType, requestId, flight);
+
+                            //send the return message
                             udpServer.send(reply, client.getAddress(), client.getPort());
-                            udpServer.updateRecords(clientMessage,reply);
+                            udpServer.updateRecords(clientMessage, reply);
                             break;
                         case 3:
                             // perform service 3
+                            //unmarshall the clientMessage to get the flightId and number of seats
                             int[] reservationInfo = udpServer.marshaller.byteArrayToReservationInfo(clientMessage);
-                            System.out.println("Request from: " + clientMessage.getClient().printAddress() + ":" + clientMessage.getClient().getPort());
-                            System.out.println("Request ID: " + requestId);
-                            System.out.println("Flight ID: " + reservationInfo[0] + ", Number of seats: " + reservationInfo[1]);
+
+                            //try to reserve seats for specified flightId
+                            int result = flightManager.modifyBookingsForFlight(client, reservationInfo[0], reservationInfo[1], true);
+                            String resultString = "";
+                            //TODO: @Parzivalxx - please check if the cases are correct
+                            switch(result){
+                                case 0:
+                                    resultString = "Reservation successful.";
+                                    break;
+                                case 1:
+                                    resultString = "Reservation failed. Invalid flight ID.";
+                                    break;
+                                case 2:
+                                    resultString = "Reservation failed. Invalid number of seats.";
+                                    break;
+                                case 3:
+                                    resultString = "Reservation failed. Not enough seats available.";
+                                    break;
+                                case 4:
+                                    resultString = "Reservation failed. Client cannot modify booking.";
+                                    break;
+                            }
+
+                            //marshall the return message
+                            reply = udpServer.marshaller.reservationResultToByteArray(serviceType, requestId, resultString);
+
+                            //send the return message
+                            udpServer.send(reply, client.getAddress(), client.getPort());
+                            udpServer.updateRecords(clientMessage, reply);
                             break;
                         case 4:
                             // perform service 4

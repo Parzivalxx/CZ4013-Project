@@ -16,11 +16,11 @@ public class FlightManager {
 
     public void initialiseFlights() {
         this.flights.add(
-            new Flight(1, new DateTime(2023, 1, 1, 12, 30), 100.0f, 100, "Singapore", "Malaysia")
+            new Flight(1, new DateTime(2023, 1, 1, 12, 30), 100.00f, 100, "Singapore", "Malaysia")
         );
 
         this.flights.add(
-            new Flight(2, new DateTime(2023, 2, 1, 12, 30), 100.0f, 100, "Singapore", "Malaysia")
+            new Flight(2, new DateTime(2023, 2, 1, 12, 30), 100.00f, 100, "Singapore", "Malaysia")
         );
 
         this.flights.add(
@@ -33,6 +33,7 @@ public class FlightManager {
     }
 
     /**
+     * Service 1: Get a list of flightIds that satisfy the source and destination
      * @param source, starting point of flight
      * @param destination, ending point of flight
      * @return a List of flightIds satisfying selected source and destination
@@ -49,7 +50,7 @@ public class FlightManager {
     }
 
     /**
-     * queries a flight from server by Id
+     * Service 2: Get a flight object by flightId
      * @param flightId
      * @return queried flight
      */
@@ -63,7 +64,7 @@ public class FlightManager {
     }
 
     /**
-     * modifies booking for both flight and client
+     * Service 3: Modifies booking for both flight and client
      * @param client, client booking seats
      * @param flightId, flightId that is booking
      * @param seatsBooking, number of seats booking
@@ -72,11 +73,25 @@ public class FlightManager {
      */
     public int modifyBookingsForFlight(Client client, int flightId, int seatsBooking, boolean isAdding) {
         Flight f = this.getFlightById(flightId);
+        
+        /**
+         * TODO: @Parzivalxx - please check if the cases are correct
+         * cases:
+         *  - 1: flight not found
+         *  - 2: invalid number of seats
+         *  - 3: flight cannot reserve seats
+         *  - 4: client cannot modify booking
+         *  - 0: success
+         */
+
         if (f == null) return 1;
+
         if (seatsBooking < 1) return 2;
 
         if (!f.reserveSeats(seatsBooking, isAdding)) return 3;
+
         if (!client.modifyBooking(flightId, seatsBooking, isAdding)) return 4;
+
         return 0;
     }
 }
