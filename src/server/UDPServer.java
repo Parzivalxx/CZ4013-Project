@@ -7,6 +7,7 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import entity.ClientMessage;
 import entity.ClientRecord;
@@ -166,9 +167,61 @@ class UDPServer {
                             udpServer.send(reply, client.getAddress(), client.getPort());
                             udpServer.updateRecords(clientMessage, reply);
                             break;
+
                         case 4:
                             // perform service 4
                             break;
+
+                        case 5:
+                            //perform service 5
+
+                            //TODO: get client's reservations
+                            Map<Integer, Integer> reservations = client.getPersonalBookings();
+
+                            //TODO: marshall the client's reservations
+                            reply = udpServer.marshaller.reservationHistoryToByteArray(serviceType, requestId, reservations);
+
+                            //TODO: send the client's reservations
+                            udpServer.send(reply, client.getAddress(), client.getPort());
+                            udpServer.updateRecords(clientMessage, reply);
+                            break;
+
+                        case 6:
+                            //perform service 6
+                            //unmarshall the clientMessage to get the flightId and number of seats
+                            int[] cancellationInfo = udpServer.marshaller.byteArrayToReservationInfo(clientMessage);
+
+                            //try to cancel seats for specified flightId
+                            int cancelResult = flightManager.modifyBookingsForFlight(client, cancellationInfo[0], cancellationInfo[1], false);
+
+                            String cancelResultString = "";
+
+                            switch(cancelResult){
+                                case 0:
+                                    cancelResultString = "Cancellation successful.";
+                                    break;
+                                case 1:
+                                    cancelResultString = "Cancellation failed. Invalid flight ID.";
+                                    break;
+                                case 2:
+                                    cancelResultString = "Cancellation failed. Invalid number of seats.";
+                                    break;
+                                case 3:
+                                    cancelResultString = "Cancellation failed. Not enough seats booked.";
+                                    break;
+                                case 4:
+                                    cancelResultString = "Cancellation failed. Client cannot modify booking.";
+                                    break;
+                            }
+
+                            //marshall the return message
+                            reply = udpServer.marshaller.reservationResultToByteArray(serviceType, requestId, cancelResultString);
+
+                            //send the return message
+                            udpServer.send(reply, client.getAddress(), client.getPort());
+                            udpServer.updateRecords(clientMessage, reply);
+                            break;
+                            
                         default:
                             System.out.println("Invalid service type.");
                             break;

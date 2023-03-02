@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.*;
 import java.util.InputMismatchException;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.TimeoutException;
 
@@ -43,8 +44,7 @@ public class UDPClient {
         System.out.print("Choose your option : ");
     }
 
-    public void queryFlights() {
-        Scanner sc = new Scanner(System.in);
+    public void queryFlights(Scanner sc) {
         System.out.println("To query for flights based on flight routes, please enter the desired source and destination.");
         System.out.println("Please enter the desired source location.");
         try {
@@ -75,8 +75,7 @@ public class UDPClient {
         sc.close();
     }
 
-    public void queryFlightByID() {
-        Scanner sc = new Scanner(System.in);
+    public void queryFlightByID(Scanner sc) {
         System.out.println("To query for flights based on flight ID, please enter the FlightID.");
         System.out.println("Please enter the FlightID.");
         try {
@@ -102,8 +101,7 @@ public class UDPClient {
         sc.close();
     }
 
-    public void makeReservation() {
-        Scanner sc = new Scanner(System.in);
+    public void makeReservation(Scanner sc) {
         System.out
                 .println("To make reservation for flight, please enter the FlightID and the desired amount of seats.");
         System.out.println("Please enter the FlightID.");
@@ -130,6 +128,80 @@ public class UDPClient {
             e.printStackTrace();
         }
         sc.close();
+    }
+
+    public void monitorSeatAvailability(Scanner sc) {
+        System.out.println("To monitor seat availability for flight, please enter the FlightID and the length of monitor interval.");
+        try {
+            System.out.println("Please enter the FlightID.");
+            int flightId = sc.nextInt();
+
+            System.out.println("Please enter the length of monitor interval (in minutes).");
+            int interval = sc.nextInt();
+
+            /**
+             * Client message:
+             * length of message (int: 4 bytes) +
+             * serviceType (int: 4 bytes) +
+             * flightID (int: 4 bytes)
+             */
+            int serviceType = 4;
+            this.buffer = this.marshaller.monitorFlightsToByteArray(serviceType, this.idCounter, flightId, interval);
+
+            //TODO: implemment callback
+        } catch (InputMismatchException e) {
+            System.out.println(Constants.INVALID_INPUT_MSG);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void checkReservationHistory() {
+        /**
+         * Client message:
+         * length of message (int: 4 bytes) +
+         * serviceType (int: 4 bytes) +
+         * length of name (int: 4 bytes)
+        */
+
+        try {
+            int serviceType = 5;
+            this.buffer = this.marshaller.checkReservationHistoryToByteArray(serviceType, this.idCounter);
+            sendAndReceive(buffer);
+            this.idCounter++;
+        } catch (InputMismatchException e) {
+            System.out.println(Constants.INVALID_INPUT_MSG);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void cancelReservations(Scanner sc) {
+        System.out.println("To cancel reservations, please enter the FlightID and the number of seats you wish to cancel.");
+        try {
+            System.out.println("Please enter the FlightID.");
+            int flightId = sc.nextInt();
+
+            System.out.println("Please enter the number of seats you wish to cancel.");
+            int numSeats = sc.nextInt();
+
+            /**
+             * Client message:
+             * length of message (int: 4 bytes) +
+             * serviceType (int: 4 bytes) +
+             * flightID (int: 4 bytes) +
+             * numSeats (int: 4 bytes)
+             */
+            int serviceType = 6;
+            this.buffer = this.marshaller.cancelReservationsToByteArray(serviceType, this.idCounter, flightId, numSeats);
+            sendAndReceive(buffer);
+            this.idCounter++;
+            System.out.println(String.format("%d seats cancelled for Flight ID: %d", numSeats, flightId));
+        } catch (InputMismatchException e) {
+            System.out.println(Constants.INVALID_INPUT_MSG);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public void sendAndReceive(byte[] message) throws IOException, TimeoutException {
@@ -198,7 +270,22 @@ public class UDPClient {
                 String reservationResult = this.marshaller.byteArrayToReservationResult(header, packet.getData());
                 System.out.println(reservationResult);
                 break;
-        }
+
+            case 4:
+                break;
+
+            case 5:
+                Map<Integer, Integer> reservationHistory = this.marshaller.byteArrayToReservationHistory(header, packet.getData());
+                System.out.println("Reservation history:");
+                for (Map.Entry<Integer, Integer> entry : reservationHistory.entrySet()) {
+                    System.out.println(String.format("Flight ID: %d, Number of seats: %d", entry.getKey(), entry.getValue()));
+                }
+                break;
+            
+            case 6:
+                
+                break;
+        }       
 
         // String message = new String(packet.getData(), 0, packet.getLength());
         // System.out.println(message);
@@ -209,28 +296,37 @@ public class UDPClient {
                 "[1] Query flights based on flight routes",
                 "[2] Query flight ID",
                 "[3] Make reservation for flight",
-                "[4] Exit",
+                "[4] Monitor seat availability for a flight",
+                "[5] Check your flight reservation history",
+                "[6] Cancel a flight reservation",
+                "[7] Exit",
         };
 
         int userInput = 0;
         Scanner sc = new Scanner(System.in);
-        if (userInput != 4) {
+        if (userInput != 7) {   //TODO: change to while loop
             printMenu(options);
             try {
                 userInput = sc.nextInt();
                 System.out.println("You entered: " + userInput);
                 switch (userInput) {
                     case 1: // invoke flights query
-                        queryFlights();
+                        queryFlights(sc);
                         break;
                     case 2: // invoke flightID query
-                        queryFlightByID();
+                        queryFlightByID(sc);
                         break;
                     case 3: // invoke reservation
-                        makeReservation();
+                        makeReservation(sc);
                         break;
-                    case 4: // WIP (register callback)
-                        System.out.println("Exiting program...");
+                    case 4: // TODO: invoke register callback
+                        monitorSeatAvailability(sc);
+                        break;
+                    case 5: // TODO: invoke reservation history query
+                        checkReservationHistory();
+                        break;
+                    case 6: // TODO: invoke cancel reservation
+                        cancelReservations(sc);
                         break;
                     default:
                         System.out.println("Error: Please select a valid option.");

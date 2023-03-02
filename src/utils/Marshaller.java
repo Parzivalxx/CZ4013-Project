@@ -2,10 +2,10 @@ package utils;
 
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.Map;
 import java.util.ArrayList;
+import java.util.HashMap;
 
-import common.FlightDetailsByIdReply;
-import common.FlightsBySourceDestinationReply;
 import entity.*;
 
 public class Marshaller {
@@ -401,7 +401,7 @@ public class Marshaller {
     /*
      * Service 4: Monitor flights
      */
-    public byte[] monitoFlightsToByteArray(int serviceType, int requestId, int flightId, int monitorInterval) {
+    public byte[] monitorFlightsToByteArray(int serviceType, int requestId, int flightId, int monitorInterval) {
          /**
          * HEADER:
          * queryLength: 4 bytes
@@ -453,7 +453,7 @@ public class Marshaller {
      * Idempotent service
      * Service 5: Check user's booking history
      */
-    public byte[] bookingHistoryToByteArray(int serviceType, int requestId) {
+    public byte[] checkReservationHistoryToByteArray(int serviceType, int requestId) {
         /**
          * HEADER:
          * queryLength: 4 bytes
@@ -470,11 +470,68 @@ public class Marshaller {
         return buffer.array();
     }
 
+    public byte[] reservationHistoryToByteArray(int serviceType, int requestId, Map<Integer, Integer> reservationHistory) {
+        /**
+         * HEADER:
+         * queryLength: 4 bytes
+         * serviceType: 4 bytes
+         * requestId: 4 bytes
+         * 
+         * PAYLOAD:
+         * flightId: 4 bytes
+         * numSeats: 4 bytes
+         * ...
+         */
+
+        int queryLength = reservationHistory.size() * 8;
+        int totalLength = 12 + queryLength;
+        ByteBuffer buffer = ByteBuffer.allocate(totalLength);
+
+        //marshall fields to byte buffer
+        this.headerToByteArray(buffer, queryLength, serviceType, requestId);
+
+        for(Map.Entry<Integer, Integer> entry : reservationHistory.entrySet()) {
+            buffer.putInt(entry.getKey());
+            buffer.putInt(entry.getValue());
+        }
+
+        return buffer.array();
+    }
+
+    public Map<Integer, Integer> byteArrayToReservationHistory(int[] header, byte[] data) {
+        /**
+         * int[] header - {queryLength, serviceType, requestId}
+         * 
+         * PAYLOAD:
+         * flightId: 4 bytes
+         * numSeats: 4 bytes
+         * ...
+         */
+
+        int queryLength = header[0];
+
+        byte[] payload = new byte[queryLength];
+        for(int i = 0; i < queryLength; i++) {
+            payload[i] = data[i+12];
+        }
+
+        ByteBuffer buffer = ByteBuffer.wrap(payload);
+        
+        Map<Integer, Integer> reservationHistory = new HashMap<Integer, Integer>();
+        while(buffer.hasRemaining()) {
+            int flightId = buffer.getInt();
+            int numSeats = buffer.getInt();
+            reservationHistory.put(flightId, numSeats);
+        }
+
+        return reservationHistory;
+    }
+
     /*
      * Non-idempotent service
      * Service 6: Cancel booking
      */
-    public byte[] cancelBookingToByteArray(int serviceType, int requestId, int flightId, int numSeats) {
+    public byte[] cancelReservationsToByteArray(int serviceType, int requestId, int flightId, int numSeats) {
         /**
          * HEADER:
          * queryLength: 4 bytes
@@ -556,13 +613,4 @@ public class Marshaller {
         return new Flight(flightId, new DateTime(year, month, day, hour, minutes), airfare, seatAvailability, source, destination);
     }
 
-    // marshal server reply for service 1, request flights by source and destination
-    public static byte[] marshalFlightsBySourceDestinationReply(FlightsBySourceDestinationReply reply) {
-        return new byte[]{};
-    }
-
-    // marshal server reply for service 2, request flights details by id
-    public static byte[] marshalFlightDetailsByIdReply(FlightDetailsByIdReply reply) {
-        return new byte[]{};
-    }
 }   
