@@ -8,7 +8,7 @@ import entity.Client;
 import entity.DateTime;
 
 public class FlightManager {
-    private ArrayList<Flight> flights;
+    private List<Flight> flights;
 
     public FlightManager() {
         this.flights = new ArrayList<>();
@@ -68,30 +68,25 @@ public class FlightManager {
      * @param client, client booking seats
      * @param flightId, flightId that is booking
      * @param seatsBooking, number of seats booking
-     * @param isAdding, whether adding or not (as we are implementing decrement also)
-     * @return status code for booking modification
+     * @param isBooking, whether we are booking the seats (true)
+     * @return int array, {status, number of seats left in flight}
      */
-    public int modifyBookingsForFlight(Client client, int flightId, int seatsBooking, boolean isAdding) {
+    public int[] modifyBookingsForFlight(Client client, int flightId, int seatsBooking, boolean isBooking) {
         Flight f = this.getFlightById(flightId);
-        
-        /**
-         * TODO: @Parzivalxx - please check if the cases are correct
-         * cases:
-         *  - 1: flight not found
-         *  - 2: invalid number of seats
-         *  - 3: flight cannot reserve seats
-         *  - 4: client cannot modify booking
-         *  - 0: success
-         */
 
-        if (f == null) return 1;
+        if (f == null) return new int[]{1, -1};
 
-        if (seatsBooking < 1) return 2;
+        if (seatsBooking < 1) return new int[]{2, -1};
 
-        if (!f.reserveSeats(seatsBooking, isAdding)) return 3;
+        if (!f.reserveSeats(seatsBooking, isBooking)) return new int[]{3, -1};
 
-        if (!client.modifyBooking(flightId, seatsBooking, isAdding)) return 4;
+        if (!client.modifyBooking(flightId, seatsBooking, isBooking)) {
+            // if enter this block, means client is cancelling seats and not enough currently booked
+            // need to reduce back the flight seats as operation unsuccessful
+            f.reserveSeats(seatsBooking, !isBooking);
+            return new int[] {4, -1};
+        }
 
-        return 0;
+        return new int[]{0, f.getSeatAvailability()};
     }
 }

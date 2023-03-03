@@ -92,8 +92,8 @@ public class Flight {
         System.out.println(s);
     }
 
-    public boolean reserveSeats(int seatsBooking, boolean isAdding) {
-        if (isAdding) {
+    public boolean reserveSeats(int seatsBooking, boolean isBooking) {
+        if (!isBooking) {
             seatAvailability += seatsBooking;
             return true;
         }

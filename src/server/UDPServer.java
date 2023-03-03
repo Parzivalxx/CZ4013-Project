@@ -13,10 +13,13 @@ import entity.ClientMessage;
 import entity.ClientRecord;
 import entity.Flight;
 import entity.Client;
+import entity.Callback;
 import utils.Marshaller;
 import utils.Constants;
 import controller.FlightManager;
 import controller.ClientManager;
+import controller.CallbackManager;
+
 
 class UDPServer {
 
@@ -74,6 +77,7 @@ class UDPServer {
             flightManager.initialiseFlights();
 
             ClientManager clientManager = new ClientManager();
+            CallbackManager callbackManager = new CallbackManager();
 
             while (true) {
                 DatagramPacket packet = new DatagramPacket(udpServer.buffer, udpServer.buffer.length);
@@ -100,6 +104,7 @@ class UDPServer {
                 if (!handled) {
                     byte[] reply;
                     int currID = udpServer.getID();
+                    String resultString = "";
                     System.out.println("Request from: " + clientMessage.getClient().printAddress() + ":" + clientMessage.getClient().getPort());
                     System.out.println("Request ID: " + requestId);
                     switch (serviceType) {
@@ -137,12 +142,13 @@ class UDPServer {
                         case 3:
                             // perform service 3
                             //unmarshall the clientMessage to get the flightId and number of seats
+                            // reservationInfo == {flightId, numSeats}
                             int[] reservationInfo = udpServer.marshaller.byteArrayToReservationInfo(clientMessage);
 
                             //try to reserve seats for specified flightId
-                            int result = flightManager.modifyBookingsForFlight(client, reservationInfo[0], reservationInfo[1], true);
-                            String resultString = "";
-                            switch(result){
+                            // bookingResult == {status, seatsLeft}
+                            int[] bookingResult = flightManager.modifyBookingsForFlight(client, reservationInfo[0], reservationInfo[1], true);
+                            switch(bookingResult[0]){
                                 case 0:
                                     resultString = "Reservation successful.";
                                     break;
@@ -166,10 +172,36 @@ class UDPServer {
                             //send the return message
                             udpServer.send(reply, client.getAddress(), client.getPort());
                             udpServer.updateRecords(clientMessage, reply);
+                            // if booking was successful
+                            if (bookingResult[0] == 0) {
+                                // get the list of clients to update
+                                List<Callback> updating = callbackManager.getCallbacksToUpdate(reservationInfo[0]);
+                                for (Callback cb : updating) {
+                                    //marshall the return message
+                                    reply = udpServer.marshaller.callbackUpdateToByteArray(serviceType, requestId,
+                                            reservationInfo[0], bookingResult[1]);
+                                    //send the return message
+                                    udpServer.send(reply, cb.getClientAddress(), cb.getClientPort());
+                                }
+                            }
                             break;
 
                         case 4:
                             // perform service 4
+                            // monitorInfo == {flightId, interval}
+                            int[] monitorInfo = udpServer.marshaller.byteArrayToMonitorInfo(clientMessage);
+                            if (flightManager.getFlightById(monitorInfo[0]) == null) {
+                                resultString = "Creation of callback failed, flightId does not exist";
+                            } else {
+                                callbackManager.registerCallback(client.getAddress(), client.getPort(),
+                                        monitorInfo[0], monitorInfo[1]);
+                                resultString = "Creation of callback successful.";
+                            }
+                            reply = udpServer.marshaller.callbackResultToByteArray(serviceType, requestId, resultString);
+
+                            //send the return message
+                            udpServer.send(reply, client.getAddress(), client.getPort());
+                            udpServer.updateRecords(clientMessage, reply);
                             break;
 
                         case 5:
@@ -192,11 +224,11 @@ class UDPServer {
                             int[] cancellationInfo = udpServer.marshaller.byteArrayToReservationInfo(clientMessage);
 
                             //try to cancel seats for specified flightId
-                            int cancelResult = flightManager.modifyBookingsForFlight(client, cancellationInfo[0], cancellationInfo[1], false);
+                            int[] cancelResult = flightManager.modifyBookingsForFlight(client, cancellationInfo[0], cancellationInfo[1], false);
 
                             String cancelResultString = "";
 
-                            switch(cancelResult){
+                            switch(cancelResult[0]){
                                 case 0:
                                     cancelResultString = "Cancellation successful.";
                                     break;
@@ -217,9 +249,21 @@ class UDPServer {
                             //marshall the return message
                             reply = udpServer.marshaller.reservationResultToByteArray(serviceType, requestId, cancelResultString);
 
-                            //send the return message
+                            // send reply
                             udpServer.send(reply, client.getAddress(), client.getPort());
                             udpServer.updateRecords(clientMessage, reply);
+                            // if booking was successful
+                            if (cancelResult[0] == 0) {
+                                // get the list of clients to update
+                                List<Callback> updating = callbackManager.getCallbacksToUpdate(cancellationInfo[0]);
+                                for (Callback cb : updating) {
+                                    //marshall the return message
+                                    reply = udpServer.marshaller.callbackUpdateToByteArray(serviceType, requestId,
+                                            cancellationInfo[0], cancelResult[1]);
+                                    //send the return message
+                                    udpServer.send(reply, cb.getClientAddress(), cb.getClientPort());
+                                }
+                            }
                             break;
                             
                         default:

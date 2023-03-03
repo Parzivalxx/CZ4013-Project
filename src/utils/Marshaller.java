@@ -613,4 +613,13 @@ public class Marshaller {
         return new Flight(flightId, new DateTime(year, month, day, hour, minutes), airfare, seatAvailability, source, destination);
     }
 
+    //TODO: implement marshaller
+    public byte[] callbackUpdateToByteArray(int serviceType, int requestId, int flightId, int numSeatsLeft) {
+        return new byte[]{};
+    }
+
+    //TODO: implement marshaller
+    public byte[] callbackResultToByteArray(int serviceType, int requestId, String resultString) {
+        return new byte[]{};
+    }
 }   
