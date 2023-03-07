@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
   <component name="ChangeListManager">
     <list default="true" id="95d53faa-bf9e-4eb6-af45-7a168d2bf403" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/controller/CallbackManager.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/entity/Callback.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/controller/FlightManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/controller/FlightManager.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/entity/Client.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/entity/Client.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/entity/Flight.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/entity/Flight.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/client/UDPClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/client/UDPClient.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/controller/CallbackManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/controller/CallbackManager.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/server/UDPServer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/server/UDPServer.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/utils/Constants.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/Constants.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/utils/Marshaller.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/Marshaller.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -35,12 +36,13 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "settings.editor.selected.configurable": "preferences.editor"
   }
-}</component>
+}]]></component>
   <component name="RunManager" selected="Application.UDPClient">
     <configuration name="UDPClient" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
       <option name="MAIN_CLASS_NAME" value="client.UDPClient" />

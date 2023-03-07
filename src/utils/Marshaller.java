@@ -312,14 +312,13 @@ public class Marshaller {
          * 
          * flightId: 4 bytes
          */
-
         int queryLength = 4 + 4;
         int totalLength = 12 + queryLength;
         ByteBuffer buffer = ByteBuffer.allocate(totalLength);
 
         //marshall fields to byte buffer
         this.headerToByteArray(buffer, queryLength, serviceType, requestId);
-
+        buffer.putInt(flightId);
         buffer.putInt(numSeats);
 
         return buffer.array();
@@ -621,5 +620,14 @@ public class Marshaller {
     //TODO: implement marshaller
     public byte[] callbackResultToByteArray(int serviceType, int requestId, String resultString) {
         return new byte[]{};
+    }
+    //TODO: implement marshaller
+    public String byteArrayToCallbackUpdate(int[] header, byte[] data) {
+        return new String();
+    }
+
+    //TODO: implement marshaller
+    public String byteArrayToCallbackResult(int[] header, byte[] data) {
+        return new String();
     }
 }   

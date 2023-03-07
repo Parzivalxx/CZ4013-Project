@@ -107,6 +107,7 @@ class UDPServer {
                     String resultString = "";
                     System.out.println("Request from: " + clientMessage.getClient().printAddress() + ":" + clientMessage.getClient().getPort());
                     System.out.println("Request ID: " + requestId);
+                    System.out.println("Service Type: " + serviceType);
                     switch (serviceType) {
                         case 1:
                             // perform service 1
@@ -178,6 +179,8 @@ class UDPServer {
                                 List<Callback> updating = callbackManager.getCallbacksToUpdate(reservationInfo[0]);
                                 for (Callback cb : updating) {
                                     //marshall the return message
+                                    //change service type to 7
+                                    serviceType = 7;
                                     reply = udpServer.marshaller.callbackUpdateToByteArray(serviceType, requestId,
                                             reservationInfo[0], bookingResult[1]);
                                     //send the return message
@@ -258,6 +261,7 @@ class UDPServer {
                                 List<Callback> updating = callbackManager.getCallbacksToUpdate(cancellationInfo[0]);
                                 for (Callback cb : updating) {
                                     //marshall the return message
+                                    serviceType = 7;
                                     reply = udpServer.marshaller.callbackUpdateToByteArray(serviceType, requestId,
                                             cancellationInfo[0], cancelResult[1]);
                                     //send the return message

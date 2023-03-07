@@ -31,7 +31,7 @@ public class UDPClient {
         this.marshaller = marshaller;
         this.timeOut = Constants.DEFAULT_TIMEOUT;
         this.maxTries = Constants.DEFAULT_MAX_TRIES;
-        this.failProb = Constants.DEFAULT_CLIENT_FAILURE_PROB;
+        this.failProb = Constants.ENABLE_LOSS_OF_REQUEST? Constants.DEFAULT_CLIENT_FAILURE_PROB: 0;
         this.invSem = Constants.InvSem.DEFAULT;
     }
 
@@ -44,8 +44,10 @@ public class UDPClient {
         System.out.print("Choose your option : ");
     }
 
-    public void queryFlights(Scanner sc) {
-        System.out.println("To query for flights based on flight routes, please enter the desired source and destination.");
+    public void queryFlights() {
+        Scanner sc = new Scanner(System.in);
+        System.out.println(
+                "To query for flights based on flight routes, please enter the desired source and destination.");
         System.out.println("Please enter the desired source location.");
         try {
             String src = sc.next();
@@ -72,10 +74,10 @@ public class UDPClient {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        sc.close();
     }
 
-    public void queryFlightByID(Scanner sc) {
+    public void queryFlightByID() {
+        Scanner sc = new Scanner(System.in);
         System.out.println("To query for flights based on flight ID, please enter the FlightID.");
         System.out.println("Please enter the FlightID.");
         try {
@@ -98,12 +100,11 @@ public class UDPClient {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        sc.close();
     }
 
-    public void makeReservation(Scanner sc) {
-        System.out
-                .println("To make reservation for flight, please enter the FlightID and the desired amount of seats.");
+    public void makeReservation() {
+        Scanner sc = new Scanner(System.in);
+        System.out.println("To make reservation for flight, please enter the FlightID and the desired amount of seats.");
         System.out.println("Please enter the FlightID.");
         try {
             int flightId = sc.nextInt();
@@ -121,16 +122,16 @@ public class UDPClient {
             this.buffer = this.marshaller.makeReservationToByteArray(serviceType, this.idCounter, flightId, numSeats);
             sendAndReceive(buffer);
             this.idCounter++;
-            System.out.println(String.format("%d seats booked for Flight ID: %d", numSeats, flightId));
+//            System.out.println(String.format("%d seats booked for Flight ID: %d", numSeats, flightId));
         } catch (InputMismatchException e) {
             System.out.println(Constants.INVALID_INPUT_MSG);
         } catch (Exception e) {
             e.printStackTrace();
         }
-        sc.close();
     }
 
-    public void monitorSeatAvailability(Scanner sc) {
+    public void monitorSeatAvailability() {
+        Scanner sc = new Scanner(System.in);
         System.out.println("To monitor seat availability for flight, please enter the FlightID and the length of monitor interval.");
         try {
             System.out.println("Please enter the FlightID.");
@@ -147,8 +148,22 @@ public class UDPClient {
              */
             int serviceType = 4;
             this.buffer = this.marshaller.monitorFlightsToByteArray(serviceType, this.idCounter, flightId, interval);
-
+            sendAndReceive(buffer);
+            this.idCounter++;
             //TODO: implemment callback
+
+            // if callback creation successful, wait for updates
+            long intervalExpiry = System.currentTimeMillis() + (interval * 1000 * 60);
+            while(System.currentTimeMillis()<intervalExpiry){
+                try{
+                    this.receiveMessage();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                } catch (TimeoutException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            System.out.println("Monitor Interval has elapsed.");
         } catch (InputMismatchException e) {
             System.out.println(Constants.INVALID_INPUT_MSG);
         } catch (Exception e) {
@@ -176,7 +191,8 @@ public class UDPClient {
         }
     }
 
-    public void cancelReservations(Scanner sc) {
+    public void cancelReservations() {
+        Scanner sc = new Scanner(System.in);
         System.out.println("To cancel reservations, please enter the FlightID and the number of seats you wish to cancel.");
         try {
             System.out.println("Please enter the FlightID.");
@@ -196,7 +212,7 @@ public class UDPClient {
             this.buffer = this.marshaller.cancelReservationsToByteArray(serviceType, this.idCounter, flightId, numSeats);
             sendAndReceive(buffer);
             this.idCounter++;
-            System.out.println(String.format("%d seats cancelled for Flight ID: %d", numSeats, flightId));
+//            System.out.println(String.format("%d seats cancelled for Flight ID: %d", numSeats, flightId));
         } catch (InputMismatchException e) {
             System.out.println(Constants.INVALID_INPUT_MSG);
         } catch (Exception e) {
@@ -266,12 +282,15 @@ public class UDPClient {
                 System.out.println(flight.toString());
                 break;
 
-            case 3:
+            case 3, 6:
                 String reservationResult = this.marshaller.byteArrayToReservationResult(header, packet.getData());
                 System.out.println(reservationResult);
                 break;
 
             case 4:
+                String callbackResult = this.marshaller.byteArrayToCallbackResult(header, packet.getData());
+                System.out.println(callbackResult);
+                //  add logic to handle when callback creation fails
                 break;
 
             case 5:
@@ -281,14 +300,13 @@ public class UDPClient {
                     System.out.println(String.format("Flight ID: %d, Number of seats: %d", entry.getKey(), entry.getValue()));
                 }
                 break;
-            
-            case 6:
-                
+
+            case 7:
+                String callbackUpdate = this.marshaller.byteArrayToCallbackUpdate(header, packet.getData());
+                System.out.println(callbackUpdate);
                 break;
         }       
 
-        // String message = new String(packet.getData(), 0, packet.getLength());
-        // System.out.println(message);
     }
 
     public void runConsole() {
@@ -301,32 +319,35 @@ public class UDPClient {
                 "[6] Cancel a flight reservation",
                 "[7] Exit",
         };
-
-        int userInput = 0;
         Scanner sc = new Scanner(System.in);
-        if (userInput != 7) {   //TODO: change to while loop
+        int userInput = 0;
+        while (userInput != 7) {   //TODO: change to while loop
             printMenu(options);
             try {
+
                 userInput = sc.nextInt();
                 System.out.println("You entered: " + userInput);
                 switch (userInput) {
                     case 1: // invoke flights query
-                        queryFlights(sc);
+                        queryFlights();
                         break;
                     case 2: // invoke flightID query
-                        queryFlightByID(sc);
+                        queryFlightByID();
                         break;
                     case 3: // invoke reservation
-                        makeReservation(sc);
+                        makeReservation();
                         break;
                     case 4: // TODO: invoke register callback
-                        monitorSeatAvailability(sc);
+                        monitorSeatAvailability();
                         break;
                     case 5: // TODO: invoke reservation history query
                         checkReservationHistory();
                         break;
                     case 6: // TODO: invoke cancel reservation
-                        cancelReservations(sc);
+                        cancelReservations();
+                        break;
+                    case 7: //
+                        System.out.println("Exiting client...");
                         break;
                     default:
                         System.out.println("Error: Please select a valid option.");

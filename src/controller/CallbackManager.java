@@ -16,7 +16,7 @@ public class CallbackManager {
     }
 
     public void registerCallback(InetAddress clientAddress, int clientPort, int flightId, int interval) {
-        long expiry = System.currentTimeMillis() + (interval * 1000);
+        long expiry = System.currentTimeMillis() + (interval * 1000 * 60);
         Callback cb = new Callback(clientAddress, clientPort, flightId, expiry);
         if (!callbacks.containsKey(flightId)) {
             callbacks.put(flightId, new ArrayList<>());
