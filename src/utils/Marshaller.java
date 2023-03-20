@@ -448,6 +448,108 @@ public class Marshaller {
         return new int[] {flightId, monitorInterval};
     }
 
+    public byte[] callbackResultToByteArray(int serviceType, int requestId, String resultString) {
+        /**
+         * HEADER:
+         * queryLength: 4 bytes
+         * serviceType: 4 bytes
+         * requestId: 4 bytes
+         * 
+         * resultString length: 4 bytes
+         * resultString: resultString.length bytes
+         */
+
+        int queryLength = 4 + resultString.getBytes().length;
+        int totalLength = 12 + queryLength;
+
+        ByteBuffer buffer = ByteBuffer.allocate(totalLength);
+
+        //marshall fields to byte buffer
+        this.headerToByteArray(buffer, queryLength, serviceType, requestId);
+
+        buffer.putInt(resultString.getBytes().length);
+        buffer.put(resultString.getBytes());
+
+        return buffer.array();
+    }
+
+    
+    public String byteArrayToCallbackResult(int[] header, byte[] data) {
+        /**
+         * int[] header - {queryLength, serviceType, requestId}
+         * 
+         * PAYLOAD:
+         * resultString length: 4 bytes
+         * resultString: resultString.length bytes
+         */
+
+        int queryLength = header[0];
+
+        byte[] payload = new byte[queryLength];
+        for(int i = 0; i < queryLength; i++) {
+            payload[i] = data[i+12];
+        }
+
+        ByteBuffer buffer = ByteBuffer.wrap(payload);
+
+        int resultStringLength = buffer.getInt();
+        byte[] resultStringBytes = new byte[resultStringLength];
+        buffer.get(resultStringBytes);
+        
+        return new String(resultStringBytes);
+    }
+
+    
+    public byte[] callbackUpdateToByteArray(int serviceType, int requestId, int flightId, int numSeatsLeft) {
+        /**
+         * HEADER:
+         * queryLength: 4 bytes
+         * serviceType: 4 bytes
+         * requestId: 4 bytes
+         * 
+         * flightId: 4 bytes
+         * numSeatsLeft: 4 bytes
+         */
+
+        int queryLength = 4 + 4;
+        int totalLength = 12 + queryLength;
+
+        ByteBuffer buffer = ByteBuffer.allocate(totalLength);
+
+        //marshall fields to byte buffer
+        this.headerToByteArray(buffer, queryLength, serviceType, requestId);
+
+        buffer.putInt(flightId);
+        buffer.putInt(numSeatsLeft);
+
+        return buffer.array();
+    }
+
+    
+    public String byteArrayToCallbackUpdate(int[] header, byte[] data) {
+        /**
+         * int[] header - {queryLength, serviceType, requestId}
+         * 
+         * PAYLOAD:
+         * flightId: 4 bytes
+         * numSeatsLeft: 4 bytes
+         */
+
+        int queryLength = header[0];
+
+        byte[] payload = new byte[queryLength];
+        for(int i = 0; i < queryLength; i++) {
+            payload[i] = data[i+12];
+        }
+
+        ByteBuffer buffer = ByteBuffer.wrap(payload);
+
+        int flightId = buffer.getInt();
+        int numSeatsLeft = buffer.getInt();
+
+        return "Flight " + flightId + " has " + numSeatsLeft + " seats left.";
+    }
+
     /*
      * Idempotent service
      * Service 5: Check user's booking history
@@ -610,24 +712,5 @@ public class Marshaller {
         String destination = new String(destBytes);
 
         return new Flight(flightId, new DateTime(year, month, day, hour, minutes), airfare, seatAvailability, source, destination);
-    }
-
-    //TODO: implement marshaller
-    public byte[] callbackUpdateToByteArray(int serviceType, int requestId, int flightId, int numSeatsLeft) {
-        return new byte[]{};
-    }
-
-    //TODO: implement marshaller
-    public byte[] callbackResultToByteArray(int serviceType, int requestId, String resultString) {
-        return new byte[]{};
-    }
-    //TODO: implement marshaller
-    public String byteArrayToCallbackUpdate(int[] header, byte[] data) {
-        return new String();
-    }
-
-    //TODO: implement marshaller
-    public String byteArrayToCallbackResult(int[] header, byte[] data) {
-        return new String();
     }
 }   

@@ -12,7 +12,7 @@ public class CallbackManager {
     private Map<Integer, List<Callback>> callbacks;
 
     public CallbackManager() {
-        this.callbacks = new HashMap();
+        this.callbacks = new HashMap<>();
     }
 
     public void registerCallback(InetAddress clientAddress, int clientPort, int flightId, int interval) {
