@@ -134,8 +134,13 @@ class UDPServer {
                             //get flight details from specified flightId
                             Flight flight = flightManager.getFlightById(flightId);
 
+                            resultString = flight == null ? "Invalid flight ID" : 
+                                "Departure time: " + flight.getDepartureTime().toString() + ", airfare: " + flight.getAirfare() + 
+                                ", seats left: " + flight.getSeatAvailability();
+
+
                             //marshall the return message
-                            reply = udpServer.marshaller.flightToByteArray(serviceType, requestId, flight);
+                            reply = udpServer.marshaller.flightToByteArray(serviceType, requestId, resultString);
 
                             //send the return message
                             udpServer.send(reply, client.getAddress(), client.getPort());

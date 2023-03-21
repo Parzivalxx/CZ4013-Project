@@ -333,9 +333,9 @@ public class UDPClient {
                 break;
 
             case 2:
-                Flight flight = this.marshaller.byteArrayToFlight(header, packet.getData());
+                String res = this.marshaller.byteArrayToFlight(header, packet.getData());
                 System.out.println("Flight details:");
-                System.out.println(flight.toString());
+                System.out.println(res);
                 break;
 
             case 3, 6:
