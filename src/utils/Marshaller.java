@@ -311,6 +311,7 @@ public class Marshaller {
          * requestId: 4 bytes
          * 
          * flightId: 4 bytes
+         * numSeats: 4 bytes
          */
         int queryLength = 4 + 4;
         int totalLength = 12 + queryLength;
