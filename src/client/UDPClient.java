@@ -148,22 +148,22 @@ public class UDPClient {
              */
             int serviceType = 4;
             this.buffer = this.marshaller.monitorFlightsToByteArray(serviceType, this.idCounter, flightId, interval);
-            sendAndReceive(buffer);
+            sendAndReceiveCallback(buffer, interval);
             this.idCounter++;
             //TODO: implemment callback
 
-            // if callback creation successful, wait for updates
-            long intervalExpiry = System.currentTimeMillis() + (interval * 1000 * 60);
-            while(System.currentTimeMillis()<intervalExpiry){
-                try{
-                    this.receiveMessage();
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                } catch (TimeoutException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            System.out.println("Monitor Interval has elapsed.");
+//            // if callback creation successful, wait for updates
+//            long intervalExpiry = System.currentTimeMillis() + (interval * 1000 * 60);
+//            while(System.currentTimeMillis()<intervalExpiry){
+//                try{
+//                    this.receiveMessage();
+//                } catch (IOException e) {
+//                    throw new RuntimeException(e);
+//                } catch (TimeoutException e) {
+//                    throw new RuntimeException(e);
+//                }
+//            }
+//            System.out.println("Monitor Interval has elapsed.");
         } catch (InputMismatchException e) {
             System.out.println(Constants.INVALID_INPUT_MSG);
         } catch (Exception e) {
@@ -241,6 +241,62 @@ public class UDPClient {
                 else System.out.println("No reply from server");
             }
         } while (this.invSem != Constants.InvSem.NONE); // if using either at least once or at most once
+    }
+
+    public void sendAndReceiveCallback(byte[] message, int interval) throws IOException, TimeoutException {
+        int tries = 0;
+        System.out.println("Awaiting server reply...");
+        socket.setSoTimeout(timeOut);
+        String resultString = "";
+        do{
+            try {
+                this.sendMessage(message);
+                resultString = this.receiveCallbackResult();
+                break;
+            } catch (SocketTimeoutException e) {
+                tries++;
+                if (this.maxTries > 0 && tries == this.maxTries) {
+                    System.out.println(String.format("Max tries of %d reached.", this.maxTries));
+                    break;
+                }
+                if(this.invSem == 0){
+                    System.out.printf("Timeout %d, retrying...\n", tries);
+                }
+                else System.out.println("No reply from server");
+            }
+        } while (this.invSem != Constants.InvSem.NONE); // if using either at least once or at most once
+
+        System.out.println(resultString);
+        if(resultString.equals("Creation of callback successful.")){
+            // if callback creation successful, wait for updates
+            System.out.println("monitoring...");
+            long intervalExpiry = System.currentTimeMillis() + (interval * 1000 * 60);
+            //set socket timeout till interval expiry
+            socket.setSoTimeout((int) (intervalExpiry-System.currentTimeMillis()));
+            while(System.currentTimeMillis()<intervalExpiry){
+                try{
+                    this.receiveMessage();
+                } catch (SocketTimeoutException e) {
+                    //set socket timeout back to original
+                    socket.setSoTimeout(timeOut);
+                    System.out.println("Monitor Interval has elapsed.");
+                }
+            }
+        }
+    }
+    public String receiveCallbackResult() throws IOException, TimeoutException {
+        this.buffer = new byte[Constants.MAX_PACKET_SIZE];
+        DatagramPacket packet = new DatagramPacket(this.buffer, this.buffer.length);
+        socket.receive(packet);
+
+        //unmarshalling here to be added
+        // unmarshall header packet
+        int[] header = this.marshaller.byteArrayToHeader(packet.getData());
+        int serviceType = header[1];
+
+        // unmarshall query packet
+        String callbackResult = this.marshaller.byteArrayToCallbackResult(header, packet.getData());
+        return callbackResult;
     }
 
     public void sendMessage(byte[] byteArray) {

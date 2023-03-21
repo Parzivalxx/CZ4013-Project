@@ -37,7 +37,8 @@ class UDPServer {
         this.marshaller = marshaller;
         this.idCounter = 0;
         this.clientRecords = new HashMap<>();
-        this.failProb = Constants.DEFAULT_SERVER_FAILURE_PROB;
+        this.failProb = Constants.ENABLE_LOSS_OF_REQUEST? Constants.DEFAULT_SERVER_FAILURE_PROB : 0;
+
         this.invSem = Constants.InvSem.DEFAULT;
     }
 
