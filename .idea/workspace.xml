@@ -7,10 +7,7 @@
     <list default="true" id="95d53faa-bf9e-4eb6-af45-7a168d2bf403" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/client/UDPClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/client/UDPClient.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/controller/CallbackManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/controller/CallbackManager.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/server/UDPServer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/server/UDPServer.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/utils/Constants.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/Constants.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/utils/Marshaller.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/Marshaller.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -36,15 +33,15 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "settings.editor.selected.configurable": "preferences.editor"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.editor&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager" selected="Application.UDPClient">
-    <configuration name="UDPClient" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+    <configuration name="UDPClient" type="Application" factoryName="Application" singleton="false" temporary="true" nameIsGenerated="true">
       <option name="MAIN_CLASS_NAME" value="client.UDPClient" />
       <module name="CZ4013-Project" />
       <extension name="coverage">
