@@ -13,10 +13,11 @@ public class CallbackManager {
 
     public CallbackManager() {
         this.callbacks = new HashMap<>();
-    }
+    } // 1679506106465
 
     public void registerCallback(InetAddress clientAddress, int clientPort, int flightId, int interval) {
         long expiry = System.currentTimeMillis() + (interval * 1000 * 60);
+        System.out.println("Expiry: " + expiry);
         Callback cb = new Callback(clientAddress, clientPort, flightId, expiry);
         if (!callbacks.containsKey(flightId)) {
             callbacks.put(flightId, new ArrayList<>());

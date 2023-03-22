@@ -73,7 +73,6 @@ public class UDPClient {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        sc.close();
     }
 
     public void queryFlightByID() {
@@ -98,7 +97,6 @@ public class UDPClient {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        sc.close();
     }
 
     public void makeReservation() {
@@ -126,7 +124,6 @@ public class UDPClient {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        sc.close();
     }
 
     public void monitorSeatAvailability() {
@@ -154,7 +151,6 @@ public class UDPClient {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        sc.close();
     }
 
     public void checkReservationHistory() {
@@ -203,7 +199,6 @@ public class UDPClient {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        sc.close();
     }
 
     public void sendAndReceive() throws IOException, TimeoutException {
@@ -258,12 +253,12 @@ public class UDPClient {
             // if callback creation successful, wait for updates
             System.out.println("Monitoring...");
             long intervalExpiry = System.currentTimeMillis() + (interval * 1000 * 60);
-
-            //set socket timeout till interval expiry
-            socket.setSoTimeout((int) (intervalExpiry-System.currentTimeMillis()));
+            System.out.println("Interval expiry: " + intervalExpiry);
 
             while(System.currentTimeMillis() < intervalExpiry){
                 try{
+                    //set socket timeout till interval expiry
+                    socket.setSoTimeout((int) (intervalExpiry-System.currentTimeMillis()));
                     this.receiveMessage();
                 } catch (SocketTimeoutException e) {
                     //set socket timeout back to original
@@ -402,7 +397,6 @@ public class UDPClient {
                 e.printStackTrace();
             }
         }
-        sc.close();
     }
 
     public static void main(String[] args) {

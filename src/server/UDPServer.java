@@ -196,6 +196,7 @@ class UDPServer {
                             if (flightManager.getFlightById(monitorInfo[0]) == null) {
                                 resultString = "Creation of callback failed, flightId does not exist";
                             } else {
+                                System.out.println("Interval: " + monitorInfo[1]);
                                 callbackManager.registerCallback(client.getAddress(), client.getPort(),
                                         monitorInfo[0], monitorInfo[1]);
                                 resultString = "Creation of callback successful.";
