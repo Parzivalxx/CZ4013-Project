@@ -15,7 +15,8 @@ public class UDPClient {
 
     private DatagramSocket socket;
     private InetAddress serverAddress;
-    private byte[] buffer;
+    private byte[] sendBuffer;
+    private byte[] receiveBuffer;
     private final int PORT = Constants.DEFAULT_PORT;
     private Marshaller marshaller;
     private int idCounter = 1;
@@ -24,7 +25,6 @@ public class UDPClient {
     private int maxTries;
     private double failProb;
     private int invSem;
-
     public UDPClient(DatagramSocket socket, InetAddress serverAddress, Marshaller marshaller) {
         this.socket = socket;
         this.serverAddress = serverAddress;
@@ -64,8 +64,8 @@ public class UDPClient {
              * destination
              */
             int serviceType = 1;
-            this.buffer = this.marshaller.viewFlightsToByteArray(serviceType, this.idCounter, src, dst);
-            sendAndReceive(buffer);
+            this.sendBuffer = this.marshaller.viewFlightsToByteArray(serviceType, this.idCounter, src, dst);
+            sendAndReceive();
             this.idCounter++;
 //            System.out.println(String.format("Here are the flights travelling from %s to %s", src, dst));
 //            System.out.println("insert server reply here");
@@ -90,8 +90,8 @@ public class UDPClient {
              * flightID (int: 4 bytes)
              */
             int serviceType = 2;
-            this.buffer = this.marshaller.flightIdToByteArray(serviceType, this.idCounter, flightId);
-            sendAndReceive(buffer);
+            this.sendBuffer = this.marshaller.flightIdToByteArray(serviceType, this.idCounter, flightId);
+            sendAndReceive();
             this.idCounter++;
 //            System.out.println(String.format("Here are the details about Flight ID: %d", flightId));
 //            System.out.println("to be added");
@@ -119,8 +119,8 @@ public class UDPClient {
              * numSeats (int: 4 bytes)
              */
             int serviceType = 3;
-            this.buffer = this.marshaller.makeReservationToByteArray(serviceType, this.idCounter, flightId, numSeats);
-            sendAndReceive(buffer);
+            this.sendBuffer = this.marshaller.makeReservationToByteArray(serviceType, this.idCounter, flightId, numSeats);
+            sendAndReceive();
             this.idCounter++;
 //            System.out.println(String.format("%d seats booked for Flight ID: %d", numSeats, flightId));
         } catch (InputMismatchException e) {
@@ -147,8 +147,8 @@ public class UDPClient {
              * flightID (int: 4 bytes)
              */
             int serviceType = 4;
-            this.buffer = this.marshaller.monitorFlightsToByteArray(serviceType, this.idCounter, flightId, interval);
-            sendAndReceiveCallback(buffer, interval);
+            this.sendBuffer = this.marshaller.monitorFlightsToByteArray(serviceType, this.idCounter, flightId, interval);
+            sendAndReceiveCallback(interval);
             this.idCounter++;
             //TODO: implemment callback
 
@@ -181,8 +181,8 @@ public class UDPClient {
 
         try {
             int serviceType = 5;
-            this.buffer = this.marshaller.checkReservationHistoryToByteArray(serviceType, this.idCounter);
-            sendAndReceive(buffer);
+            this.sendBuffer = this.marshaller.checkReservationHistoryToByteArray(serviceType, this.idCounter);
+            sendAndReceive();
             this.idCounter++;
         } catch (InputMismatchException e) {
             System.out.println(Constants.INVALID_INPUT_MSG);
@@ -209,8 +209,8 @@ public class UDPClient {
              * numSeats (int: 4 bytes)
              */
             int serviceType = 6;
-            this.buffer = this.marshaller.cancelReservationsToByteArray(serviceType, this.idCounter, flightId, numSeats);
-            sendAndReceive(buffer);
+            this.sendBuffer = this.marshaller.cancelReservationsToByteArray(serviceType, this.idCounter, flightId, numSeats);
+            sendAndReceive();
             this.idCounter++;
 //            System.out.println(String.format("%d seats cancelled for Flight ID: %d", numSeats, flightId));
         } catch (InputMismatchException e) {
@@ -220,13 +220,13 @@ public class UDPClient {
         }
     }
 
-    public void sendAndReceive(byte[] message) throws IOException, TimeoutException {
+    public void sendAndReceive() throws IOException, TimeoutException {
         int tries = 0;
         System.out.println("Awaiting server reply...");
         socket.setSoTimeout(timeOut);
         do{
             try {
-                this.sendMessage(message);
+                this.sendMessage();
                 this.receiveMessage();
                 break;
             } catch (SocketTimeoutException e) {
@@ -243,14 +243,14 @@ public class UDPClient {
         } while (this.invSem != Constants.InvSem.NONE); // if using either at least once or at most once
     }
 
-    public void sendAndReceiveCallback(byte[] message, int interval) throws IOException, TimeoutException {
+    public void sendAndReceiveCallback(int interval) throws IOException, TimeoutException {
         int tries = 0;
         System.out.println("Awaiting server reply...");
         socket.setSoTimeout(timeOut);
         String resultString = "";
         do{
             try {
-                this.sendMessage(message);
+                this.sendMessage();
                 resultString = this.receiveCallbackResult();
                 break;
             } catch (SocketTimeoutException e) {
@@ -285,8 +285,8 @@ public class UDPClient {
         }
     }
     public String receiveCallbackResult() throws IOException, TimeoutException {
-        this.buffer = new byte[Constants.MAX_PACKET_SIZE];
-        DatagramPacket packet = new DatagramPacket(this.buffer, this.buffer.length);
+        this.receiveBuffer = new byte[Constants.MAX_PACKET_SIZE];
+        DatagramPacket packet = new DatagramPacket(this.receiveBuffer, this.receiveBuffer.length);
         socket.receive(packet);
 
         //unmarshalling here to be added
@@ -299,11 +299,11 @@ public class UDPClient {
         return callbackResult;
     }
 
-    public void sendMessage(byte[] byteArray) {
+    public void sendMessage() {
         if (Math.random() < this.failProb) {
             System.out.println("Client dropping packet to simulate lost request.");
         } else{
-            DatagramPacket packet = new DatagramPacket(this.buffer, this.buffer.length, this.serverAddress, this.PORT);
+            DatagramPacket packet = new DatagramPacket(this.sendBuffer, this.sendBuffer.length, this.serverAddress, this.PORT);
             try {
                 this.socket.send(packet);
             } catch (IOException e) {
@@ -313,8 +313,8 @@ public class UDPClient {
     }
 
     public void receiveMessage() throws IOException, TimeoutException {
-        this.buffer = new byte[Constants.MAX_PACKET_SIZE];
-        DatagramPacket packet = new DatagramPacket(this.buffer, this.buffer.length);
+        this.receiveBuffer = new byte[Constants.MAX_PACKET_SIZE];
+        DatagramPacket packet = new DatagramPacket(this.receiveBuffer, this.receiveBuffer.length);
         socket.receive(packet);
 
         //unmarshalling here to be added

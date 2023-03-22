@@ -8,6 +8,8 @@ import java.net.SocketException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.lang.System;
+import java.lang.Object;
 
 import entity.ClientMessage;
 import entity.ClientRecord;
@@ -31,6 +33,7 @@ class UDPServer {
     private HashMap<ClientRecord, byte[]> clientRecords;
     private double failProb;
     private int invSem;
+    private byte[] previousPacket;
 
     private UDPServer(DatagramSocket socket, Marshaller marshaller) throws SocketException {
         this.socket = socket;
@@ -40,6 +43,16 @@ class UDPServer {
         this.failProb = Constants.ENABLE_LOSS_OF_REQUEST? Constants.DEFAULT_SERVER_FAILURE_PROB : 0;
 
         this.invSem = Constants.InvSem.DEFAULT;
+        this.previousPacket = null;
+    }
+
+    private byte[] getPreviousPacket() {
+        return this.previousPacket;
+    }
+
+    private void setPreviousPacket(byte[] packet) {
+        this.previousPacket = packet;
+        return;
     }
 
     private int getID() {
@@ -85,8 +98,12 @@ class UDPServer {
                 udpServer.socket.receive(packet);
 
                 // unmarshall header packet
-                int[] header = udpServer.marshaller.byteArrayToHeader(packet.getData());
-                int queryLength = header[0], serviceType = header[1], requestId = header[2];
+                int[] header;
+                int queryLength, serviceType, requestId;
+                header = udpServer.marshaller.byteArrayToHeader(packet.getData());
+                queryLength = header[0];
+                serviceType = header[1];
+                requestId = header[2];
 
                 Client client;
                 client = clientManager.getClientByAddressAndPort(packet.getAddress(), packet.getPort());
