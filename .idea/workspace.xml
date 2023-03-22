@@ -6,8 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="95d53faa-bf9e-4eb6-af45-7a168d2bf403" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/client/UDPClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/client/UDPClient.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/server/UDPServer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/server/UDPServer.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/utils/Constants.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/Constants.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
