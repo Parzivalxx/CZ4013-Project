@@ -1,7 +1,5 @@
 package entity;
 
-import entity.Client;
-
 public class ClientRecord {
     private Client client;
     private int id;

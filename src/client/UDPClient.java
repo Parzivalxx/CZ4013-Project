@@ -8,7 +8,6 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.TimeoutException;
 
-import entity.Flight;
 import utils.*;
 
 public class UDPClient {
@@ -20,6 +19,7 @@ public class UDPClient {
     private final int PORT = Constants.DEFAULT_PORT;
     private Marshaller marshaller;
     private int idCounter = 1;
+
     // Timeout properties
     private int timeOut;
     private int maxTries;
@@ -68,13 +68,12 @@ public class UDPClient {
             this.sendBuffer = this.marshaller.viewFlightsToByteArray(serviceType, this.idCounter, src, dst);
             sendAndReceive();
             this.idCounter++;
-//            System.out.println(String.format("Here are the flights travelling from %s to %s", src, dst));
-//            System.out.println("insert server reply here");
         } catch (InputMismatchException e) {
             System.out.println(Constants.INVALID_INPUT_MSG);
         } catch (Exception e) {
             e.printStackTrace();
         }
+        sc.close();
     }
 
     public void queryFlightByID() {
@@ -94,13 +93,12 @@ public class UDPClient {
             this.sendBuffer = this.marshaller.flightIdToByteArray(serviceType, this.idCounter, flightId);
             sendAndReceive();
             this.idCounter++;
-//            System.out.println(String.format("Here are the details about Flight ID: %d", flightId));
-//            System.out.println("to be added");
         } catch (InputMismatchException e) {
             System.out.println(Constants.INVALID_INPUT_MSG);
         } catch (Exception e) {
             e.printStackTrace();
         }
+        sc.close();
     }
 
     public void makeReservation() {
@@ -123,12 +121,12 @@ public class UDPClient {
             this.sendBuffer = this.marshaller.makeReservationToByteArray(serviceType, this.idCounter, flightId, numSeats);
             sendAndReceive();
             this.idCounter++;
-//            System.out.println(String.format("%d seats booked for Flight ID: %d", numSeats, flightId));
         } catch (InputMismatchException e) {
             System.out.println(Constants.INVALID_INPUT_MSG);
         } catch (Exception e) {
             e.printStackTrace();
         }
+        sc.close();
     }
 
     public void monitorSeatAvailability() {
@@ -151,25 +149,12 @@ public class UDPClient {
             this.sendBuffer = this.marshaller.monitorFlightsToByteArray(serviceType, this.idCounter, flightId, interval);
             sendAndReceiveCallback(interval);
             this.idCounter++;
-            //TODO: implemment callback
-
-//            // if callback creation successful, wait for updates
-//            long intervalExpiry = System.currentTimeMillis() + (interval * 1000 * 60);
-//            while(System.currentTimeMillis()<intervalExpiry){
-//                try{
-//                    this.receiveMessage();
-//                } catch (IOException e) {
-//                    throw new RuntimeException(e);
-//                } catch (TimeoutException e) {
-//                    throw new RuntimeException(e);
-//                }
-//            }
-//            System.out.println("Monitor Interval has elapsed.");
         } catch (InputMismatchException e) {
             System.out.println(Constants.INVALID_INPUT_MSG);
         } catch (Exception e) {
             e.printStackTrace();
         }
+        sc.close();
     }
 
     public void checkReservationHistory() {
@@ -213,12 +198,12 @@ public class UDPClient {
             this.sendBuffer = this.marshaller.cancelReservationsToByteArray(serviceType, this.idCounter, flightId, numSeats);
             sendAndReceive();
             this.idCounter++;
-//            System.out.println(String.format("%d seats cancelled for Flight ID: %d", numSeats, flightId));
         } catch (InputMismatchException e) {
             System.out.println(Constants.INVALID_INPUT_MSG);
         } catch (Exception e) {
             e.printStackTrace();
         }
+        sc.close();
     }
 
     public void sendAndReceive() throws IOException, TimeoutException {
@@ -268,13 +253,16 @@ public class UDPClient {
         } while (this.invSem != Constants.InvSem.NONE); // if using either at least once or at most once
 
         System.out.println(resultString);
+        
         if(resultString.equals("Creation of callback successful.")){
             // if callback creation successful, wait for updates
-            System.out.println("monitoring...");
+            System.out.println("Monitoring...");
             long intervalExpiry = System.currentTimeMillis() + (interval * 1000 * 60);
+
             //set socket timeout till interval expiry
             socket.setSoTimeout((int) (intervalExpiry-System.currentTimeMillis()));
-            while(System.currentTimeMillis()<intervalExpiry){
+
+            while(System.currentTimeMillis() < intervalExpiry){
                 try{
                     this.receiveMessage();
                 } catch (SocketTimeoutException e) {
@@ -293,7 +281,6 @@ public class UDPClient {
         //unmarshalling here to be added
         // unmarshall header packet
         int[] header = this.marshaller.byteArrayToHeader(packet.getData());
-        int serviceType = header[1];
 
         // unmarshall query packet
         String callbackResult = this.marshaller.byteArrayToCallbackResult(header, packet.getData());
@@ -318,7 +305,6 @@ public class UDPClient {
         DatagramPacket packet = new DatagramPacket(this.receiveBuffer, this.receiveBuffer.length);
         socket.receive(packet);
 
-        //unmarshalling here to be added
         // unmarshall header packet
         int[] header = this.marshaller.byteArrayToHeader(packet.getData());
         int serviceType = header[1];
@@ -378,29 +364,29 @@ public class UDPClient {
         };
         Scanner sc = new Scanner(System.in);
         int userInput = 0;
-        while (userInput != 7) {   //TODO: change to while loop
+        while (userInput != 7) {
             printMenu(options);
             try {
 
                 userInput = sc.nextInt();
                 System.out.println("You entered: " + userInput);
                 switch (userInput) {
-                    case 1: // invoke flights query
+                    case 1:
                         queryFlights();
                         break;
-                    case 2: // invoke flightID query
+                    case 2:
                         queryFlightByID();
                         break;
                     case 3: // invoke reservation
                         makeReservation();
                         break;
-                    case 4: // TODO: invoke register callback
+                    case 4:
                         monitorSeatAvailability();
                         break;
-                    case 5: // TODO: invoke reservation history query
+                    case 5:
                         checkReservationHistory();
                         break;
-                    case 6: // TODO: invoke cancel reservation
+                    case 6:
                         cancelReservations();
                         break;
                     case 7: //
@@ -424,7 +410,6 @@ public class UDPClient {
         try {
             client = new UDPClient(new DatagramSocket(), InetAddress.getByName("localhost"), new Marshaller());
             System.out.println("Client is running ...");
-            // client.sendMessage();
             client.runConsole();
         } catch (IOException e) {
             e.printStackTrace();
