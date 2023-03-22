@@ -27,7 +27,6 @@ class UDPServer {
     private static final int PORT = Constants.DEFAULT_PORT;
     private DatagramSocket socket;
     private Marshaller marshaller;
-    private int idCounter;
     private HashMap<ClientRecord, byte[]> clientRecords;
     private double failProb;
     private int invSem;
@@ -35,17 +34,10 @@ class UDPServer {
     private UDPServer(DatagramSocket socket, Marshaller marshaller) throws SocketException {
         this.socket = socket;
         this.marshaller = marshaller;
-        this.idCounter = 0;
         this.clientRecords = new HashMap<>();
         this.failProb = Constants.ENABLE_LOSS_OF_REQUEST? Constants.DEFAULT_SERVER_FAILURE_PROB : 0;
 
         this.invSem = Constants.InvSem.DEFAULT;
-    }
-
-    private int getID() {
-        int currID = idCounter;
-        idCounter++;
-        return currID;
     }
 
     private boolean checkAndResend(Client client, int requestId) {
@@ -108,7 +100,6 @@ class UDPServer {
 
                 if (!handled) {
                     byte[] reply;
-                    int currID = udpServer.getID();
                     String resultString = "";
                     System.out.println("Request from: " + clientMessage.getClient().printAddress() + ":" + clientMessage.getClient().getPort());
                     System.out.println("Request ID: " + requestId);
@@ -153,11 +144,9 @@ class UDPServer {
                         case 3:
                             // perform service 3
                             //unmarshall the clientMessage to get the flightId and number of seats
-                            // reservationInfo == {flightId, numSeats}
                             int[] reservationInfo = udpServer.marshaller.byteArrayToReservationInfo(clientMessage);
 
                             //try to reserve seats for specified flightId
-                            // bookingResult == {status, seatsLeft}
                             int[] bookingResult = flightManager.modifyBookingsForFlight(client, reservationInfo[0], reservationInfo[1], true);
                             switch(bookingResult[0]){
                                 case 0:
@@ -201,8 +190,9 @@ class UDPServer {
 
                         case 4:
                             // perform service 4
-                            // monitorInfo == {flightId, interval}
+                            // unmarshall the clientMessage to get the flightId and monitor interval
                             int[] monitorInfo = udpServer.marshaller.byteArrayToMonitorInfo(clientMessage);
+
                             if (flightManager.getFlightById(monitorInfo[0]) == null) {
                                 resultString = "Creation of callback failed, flightId does not exist";
                             } else {
@@ -218,25 +208,26 @@ class UDPServer {
                             break;
 
                         case 5:
-                            //perform service 5
+                            // perform service 5
 
-                            //TODO: get client's reservations
+                            // get client's reservations
                             Map<Integer, Integer> reservations = client.getPersonalBookings();
 
-                            //TODO: marshall the client's reservations
+                            // marshall the client's reservations
                             reply = udpServer.marshaller.reservationHistoryToByteArray(serviceType, requestId, reservations);
 
-                            //TODO: send the client's reservations
+                            // send the client's reservations
                             udpServer.send(reply, client.getAddress(), client.getPort());
                             udpServer.updateRecords(clientMessage, reply);
                             break;
 
                         case 6:
                             //perform service 6
-                            //unmarshall the clientMessage to get the flightId and number of seats
+
+                            // unmarshall the clientMessage to get the flightId and number of seats
                             int[] cancellationInfo = udpServer.marshaller.byteArrayToReservationInfo(clientMessage);
 
-                            //try to cancel seats for specified flightId
+                            // try to cancel seats for specified flightId
                             int[] cancelResult = flightManager.modifyBookingsForFlight(client, cancellationInfo[0], cancellationInfo[1], false);
 
                             String cancelResultString = "";
@@ -259,7 +250,7 @@ class UDPServer {
                                     break;
                             }
 
-                            //marshall the return message
+                            // marshall the return message
                             reply = udpServer.marshaller.reservationResultToByteArray(serviceType, requestId, cancelResultString);
 
                             // send reply
@@ -293,24 +284,6 @@ class UDPServer {
         }
     }
 
-    // private byte[] addHeaders(byte[] packageByte, int id, int serviceNum) throws IOException {
-    //     List message = new ArrayList();
-    //     Utils.append(message, id);
-    //     Utils.append(message, serviceNum);
-    //     byte[] header = Utils.byteUnboxing(message);
-
-    //     ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    //     baos.write(header);
-    //     baos.write(packageByte);
-
-    //     return baos.toByteArray();
-    // }
-
-    // private int getID() {
-    //     this.idCounter++;
-    //     return this.idCounter;
-    // }
-
     private void send(byte[] message, InetAddress clientAddress, int clientPort) throws IOException {
         if (Math.random() < this.failProb) {
             System.out.println("Server dropping packet to simulate lost request.");
@@ -320,33 +293,4 @@ class UDPServer {
             this.socket.send(packet);
         }
     }
-
-
-    // private ClientMessage receive() throws IOException {
-
-    //     DatagramPacket receivePacket;
-    //     byte[] header = new byte[4];
-    //     DatagramPacket headerPacket = new DatagramPacket(header, header.length);
-    //     this.udpSocket.receive(headerPacket);
-
-    //     int messageLength = Utils.unmarshalInteger(headerPacket.getData(), 0);
-
-    //     byte[] receiveData = new byte[messageLength];
-    //     receivePacket = new DatagramPacket(receiveData, receiveData.length);
-    //     this.udpSocket.receive(receivePacket);
-
-    //     int responseID = Utils.unmarshalInteger(receivePacket.getData(), 0);
-    //     int serviceType = Utils.unmarshalInteger(receivePacket.getData(), Constants.INT_SIZE);
-    //     InetAddress clientAddress = receivePacket.getAddress();
-    //     int clientPort = receivePacket.getPort();
-
-    //     return new ClientMessage(
-    //             responseID,
-    //             Arrays.copyOfRange(receivePacket.getData(), 2 * Constants.INT_SIZE, messageLength),
-    //             clientAddress,
-    //             clientPort,
-    //             serviceType,
-    //             messageLength
-    //     );
-    // }
 }
