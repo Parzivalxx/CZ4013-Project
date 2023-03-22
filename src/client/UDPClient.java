@@ -25,6 +25,7 @@ public class UDPClient {
     private int maxTries;
     private double failProb;
     private int invSem;
+
     public UDPClient(DatagramSocket socket, InetAddress serverAddress, Marshaller marshaller) {
         this.socket = socket;
         this.serverAddress = serverAddress;
