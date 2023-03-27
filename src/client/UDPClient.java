@@ -28,7 +28,7 @@ public class UDPClient {
 
     public UDPClient(DatagramSocket socket, InetAddress serverAddress, Marshaller marshaller) throws UnknownHostException{
         this.socket = socket;
-        this.serverAddress = InetAddress.getByName(Constants.SERVER_ADDRESS);
+        this.serverAddress = serverAddress;
         this.marshaller = marshaller;
         this.timeOut = Constants.DEFAULT_TIMEOUT;
         this.maxTries = Constants.DEFAULT_MAX_TRIES;
@@ -402,7 +402,7 @@ public class UDPClient {
     public static void main(String[] args) {
         UDPClient client;
         try {
-            client = new UDPClient(new DatagramSocket(), InetAddress.getByName("localhost"), new Marshaller());
+            client = new UDPClient(new DatagramSocket(), InetAddress.getByName(Constants.SERVER_ADDRESS), new Marshaller());
             System.out.println("Client is running ...");
             client.runConsole();
         } catch (IOException e) {
