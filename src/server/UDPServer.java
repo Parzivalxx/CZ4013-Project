@@ -90,6 +90,7 @@ class UDPServer {
                     client = new Client(packet.getAddress(), packet.getPort());
                     clientManager.addClient(client);
                 }
+                System.out.println("Client: " + client.printAddress());
 
                 boolean handled;
                 if (udpServer.invSem == Constants.InvSem.AT_MOST_ONCE) {
@@ -148,6 +149,7 @@ class UDPServer {
 
                             //try to reserve seats for specified flightId
                             int[] bookingResult = flightManager.modifyBookingsForFlight(client, reservationInfo[0], reservationInfo[1], true);
+                            
                             switch(bookingResult[0]){
                                 case 0:
                                     resultString = "Reservation successful.";

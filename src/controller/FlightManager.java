@@ -72,6 +72,7 @@ public class FlightManager {
      * @return int array, {status, number of seats left in flight}
      */
     public int[] modifyBookingsForFlight(Client client, int flightId, int seatsBooking, boolean isBooking) {
+        System.out.println("FlightManager: modifyBookingsForFlight: " + client.printAddress() + ":" + client.getPort());
         Flight f = this.getFlightById(flightId);
 
         if (f == null) return new int[]{1, -1};

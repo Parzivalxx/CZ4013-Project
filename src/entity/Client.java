@@ -49,7 +49,7 @@ public class Client {
             }
             return true;
         }
-        if (!personalBookings.containsKey(flightId)) {
+        else if (!personalBookings.containsKey(flightId)) {
             personalBookings.put(flightId, seatsBooking);
         } else {
             personalBookings.compute(flightId, (k, v) -> v + seatsBooking);

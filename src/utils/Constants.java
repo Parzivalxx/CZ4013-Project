@@ -5,7 +5,7 @@ public class Constants {
     public static final int MAX_PACKET_SIZE = 256;
 
     public static final int DEFAULT_PORT = 5000;
-    public static final boolean ENABLE_LOSS_OF_REQUEST = true;
+    public static final boolean ENABLE_LOSS_OF_REQUEST = false;
     public static final double DEFAULT_CLIENT_FAILURE_PROB = 0.1;
     public static final double DEFAULT_SERVER_FAILURE_PROB = 0.1;
     public static final int DEFAULT_TIMEOUT = 1000;
