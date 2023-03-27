@@ -26,9 +26,9 @@ public class UDPClient {
     private double failProb;
     private int invSem;
 
-    public UDPClient(DatagramSocket socket, InetAddress serverAddress, Marshaller marshaller) {
+    public UDPClient(DatagramSocket socket, InetAddress serverAddress, Marshaller marshaller) throws UnknownHostException{
         this.socket = socket;
-        this.serverAddress = serverAddress;
+        this.serverAddress = InetAddress.getByName(Constants.SERVER_ADDRESS);
         this.marshaller = marshaller;
         this.timeOut = Constants.DEFAULT_TIMEOUT;
         this.maxTries = Constants.DEFAULT_MAX_TRIES;

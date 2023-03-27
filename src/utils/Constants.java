@@ -1,6 +1,7 @@
 package utils;
 
 public class Constants {
+    public static final String SERVER_ADDRESS = "155.69.192.63";
     public static final int MAX_PACKET_SIZE = 256;
 
     public static final int DEFAULT_PORT = 5000;
